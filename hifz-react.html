@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Hifz Repeater — حِفْظ</title>
+<meta name="description" content="Quran memorisation — listen, repeat, veil the page and recite.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#08160f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hifz">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Scheherazade+New:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        night:'#08160f', emerald1:'#0c1e16', emerald2:'#102419', emerald3:'#16332f',
+        gold:'#c8a14b', goldhi:'#e6cd86', goldsoft:'#9a7c39',
+        cream:'#f3ead3', creamhi:'#fbf5e6', ink:'#2a2417', dim:'#87a093',
+      },
+      fontFamily: {
+        ar:["'Amiri Quran'","'Scheherazade New'",'serif'],
+        serif:["Fraunces",'serif'], sans:["Figtree",'system-ui','sans-serif'],
+      },
+      borderRadius:{ '4xl':'2rem','5xl':'2.5rem' },
+    }}
+  }
+</script>
+<style>
+  html{ -webkit-text-size-adjust:100%; }
+  body{ background:#08160f; overflow-x:hidden; }
+  ::selection{ background:#c8a14b; color:#08160f; }
+  select, input[type=number]{ -webkit-appearance:none; appearance:none; }
+  .qtext tajweed{ color:inherit; }
+  .qtext.tj tajweed.ghunnah,.qtext.tj tajweed.idgham_ghunnah,.qtext.tj tajweed.idgham_shafawi,.qtext.tj tajweed.iqlab{ color:#1f8a4c; }
+  .qtext.tj tajweed.ikhafa,.qtext.tj tajweed.ikhafa_shafawi{ color:#137a8f; }
+  .qtext.tj tajweed.qalaqah{ color:#1d6fb8; }
+  .qtext.tj tajweed.madda_normal,.qtext.tj tajweed.madda_permissible,.qtext.tj tajweed.madda_necessary,.qtext.tj tajweed.madda_obligatory{ color:#b03030; }
+  .qtext.tj tajweed.ham_wasl,.qtext.tj tajweed.laam_shamsiyah,.qtext.tj tajweed.slnt{ color:#9a8a66; }
+  .qtext.tj tajweed.idgham_wo_ghunnah,.qtext.tj tajweed.idgham_mutajanisayn{ color:#7a4ea3; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<audio id="audio" preload="auto"></audio>
+
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/framer-motion@11.3.21/dist/framer-motion.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.25.6/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback } = React;
+const FM = window.Motion || window.FramerMotion || {};
+const motion = FM.motion || new Proxy({}, { get: () => (p => React.createElement('div', p, p && p.children)) });
+const AnimatePresence = FM.AnimatePresence || (({children}) => children);
+
+const API="https://api.quran.com/api/v4", QDC="https://verses.quran.com/", EVERYAYAH="https://everyayah.com/data/";
+const pad3=n=>String(n).padStart(3,"0");
+const arabicDigits=n=>String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
+
+const RECITERS=[
+  {group:"Classical / Teaching",items:[
+    {v:"q:6",label:"Mahmoud Khalil al-Husary"},
+    {v:"q:12",label:"Husary — Mu'allim (teaching pace)"},
+    {v:"q:2",label:"AbdulBaset AbdulSamad (Murattal)"},
+    {v:"q:9",label:"Mohamed Siddiq al-Minshawi"},
+  ]},
+  {group:"Contemporary",items:[
+    {v:"q:7",label:"Mishari Rashid al-Afasy"},
+    {v:"q:10",label:"Saud ash-Shuraym"},
+    {v:"q:3",label:"Abdur-Rahman as-Sudais"},
+    {v:"e:MaherAlMuaiqly128kbps",label:"Maher al-Muaiqly"},
+    {v:"e:Ghamadi_40kbps",label:"Saad al-Ghamdi"},
+  ]},
+];
+const TRANSLATIONS=[
+  {v:"",label:"None — Arabic only"},
+  {v:"20",label:"Saheeh International"},
+  {v:"85",label:"M.A.S. Abdel Haleem"},
+  {v:"203",label:"Al-Hilali & Khan"},
+  {v:"84",label:"T. Usmani"},
+];
+const MODES=[
+  {v:1,label:"Read through — no repeat"},
+  {v:3,label:"Repeat each ayah 3×"},
+  {v:5,label:"Repeat each ayah 5×"},
+  {v:7,label:"Repeat each ayah 7×"},
+  {v:10,label:"Repeat each ayah 10×"},
+];
+
+function stripFootnotes(html){
+  const d=document.createElement("div"); d.innerHTML=html;
+  d.querySelectorAll("sup").forEach(s=>s.remove());
+  return d.textContent.trim();
+}
+
+function GlassField({label,children}){
+  return (<label className="block">
+    <span className="block text-[0.62rem] tracking-[0.16em] uppercase text-dim mb-1.5">{label}</span>
+    {children}
+  </label>);
+}
+const selectClass="w-full px-3 py-2.5 rounded-2xl text-creamhi text-[0.92rem] font-sans bg-gradient-to-br from-white/10 to-black/20 border border-white/15 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] focus:outline-none focus:ring-2 focus:ring-gold/70";
+
+function App(){
+  const [chapters,setChapters]=useState([]);
+  const [chapterId,setChapterId]=useState(1);
+  const [from,setFrom]=useState(1);
+  const [to,setTo]=useState(5);
+  const [whole,setWhole]=useState(false);
+  const [reciter,setReciter]=useState("q:7");
+  const [translationId,setTranslationId]=useState("");
+  const [passage,setPassage]=useState([]);
+  const [activeChapter,setActiveChapter]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [status,setStatus]=useState("");
+  const [error,setError]=useState("");
+  const [playing,setPlaying]=useState(false);
+  const [currentIdx,setCurrentIdx]=useState(-1);
+  const [reps,setReps]=useState(3);
+  const [loop,setLoop]=useState(true);
+  const [veiled,setVeiled]=useState(false);
+  const [peeked,setPeeked]=useState({});
+  const [tajweed,setTajweed]=useState(false);
+  const [sheetOpen,setSheetOpen]=useState(false);
+
+  const audioRef=useRef(null), idxRef=useRef(0), repsDoneRef=useRef(0),
+        repsRef=useRef(3), loopRef=useRef(true), playingRef=useRef(false), passageRef=useRef([]);
+
+  useEffect(()=>{ audioRef.current=document.getElementById("audio"); },[]);
+  useEffect(()=>{ repsRef.current=reps; },[reps]);
+  useEffect(()=>{ loopRef.current=loop; },[loop]);
+  useEffect(()=>{ passageRef.current=passage; },[passage]);
+
+  useEffect(()=>{
+    fetch(API+"/chapters?language=en").then(r=>r.json())
+      .then(d=>setChapters(d.chapters))
+      .catch(()=>setError("Could not load the surah list. Check your connection and reload."));
+  },[]);
+
+  const chapter=chapters.find(c=>c.id==chapterId);
+
+  useEffect(()=>{
+    if(!chapter) return;
+    if(whole){ setFrom(1); setTo(chapter.verses_count); }
+    else { setFrom(f=>Math.min(Math.max(1,f),chapter.verses_count));
+           setTo(t=>Math.min(Math.max(1,t||5),chapter.verses_count)); }
+  },[chapterId,whole,chapter]);
+
+  async function resolveAudioMap(chNum){
+    const [src,ref]=reciter.split(":"); const map={};
+    if(src==="e"){
+      const c=chapters.find(x=>x.id==chNum);
+      for(let n=1;n<=c.verses_count;n++) map[chNum+":"+n]=EVERYAYAH+ref+"/"+pad3(chNum)+pad3(n)+".mp3";
+      return map;
+    }
+    const d=await fetch(`${API}/recitations/${ref}/by_chapter/${chNum}?per_page=300`).then(r=>r.json());
+    (d.audio_files||[]).forEach(f=>{
+      if(!f.url) return; let u=f.url;
+      if(u.startsWith("//")) u="https:"+u;
+      else if(!u.startsWith("http")) u=QDC+u.replace(/^\/+/,"");
+      map[f.verse_key]=u;
+    });
+    return map;
+  }
+
+  async function loadPassage(){
+    if(!chapter) return;
+    setError(""); stopPlayback();
+    let a=Math.max(1,Math.min(+from||1,chapter.verses_count));
+    let b=Math.max(1,Math.min(+to||a,chapter.verses_count));
+    if(b<a) [a,b]=[b,a];
+    setFrom(a); setTo(b); setLoading(true); setStatus("Fetching verses…");
+    try{
+      const jobs=[
+        fetch(`${API}/quran/verses/uthmani?chapter_number=${chapter.id}`).then(r=>r.json()),
+        fetch(`${API}/quran/verses/uthmani_tajweed?chapter_number=${chapter.id}`).then(r=>r.json()).catch(()=>null),
+      ];
+      const tid=translationId;
+      if(tid) jobs.push(fetch(`${API}/quran/translations/${tid}?chapter_number=${chapter.id}`).then(r=>r.json()));
+      const [tr,tj,tl]=await Promise.all(jobs);
+      const tajByKey={};
+      if(tj&&tj.verses) tj.verses.forEach(v=>{ tajByKey[v.verse_key]=v.text_uthmani_tajweed; });
+      const slice=tr.verses.filter(v=>{ const n=+v.verse_key.split(":")[1]; return n>=a&&n<=b; });
+      setStatus("Fetching recitation…");
+      const audioMap=await resolveAudioMap(chapter.id);
+      const built=slice.map(v=>{
+        const n=+v.verse_key.split(":")[1];
+        return {
+          key:v.verse_key,num:n,text:v.text_uthmani,
+          textTajweed:(tajByKey[v.verse_key]||v.text_uthmani)
+            .replace(/<span class=end>.*?<\/span>/g,"")
+            .replace(/<tajweed class=end>.*?<\/tajweed>/g,"").trim(),
+          trans:tid&&tl&&tl.translations&&tl.translations[n-1]?stripFootnotes(tl.translations[n-1].text):null,
+          audioUrl:audioMap[v.verse_key]||null,
+        };
+      });
+      setPassage(built); setActiveChapter(chapter);
+      setVeiled(false); setPeeked({}); setCurrentIdx(-1);
+      idxRef.current=0; repsDoneRef.current=0;
+      setStatus(`${built.length} ayah${built.length>1?"s":""} loaded`);
+    }catch(e){
+      setError("Could not fetch the passage from Quran.com. Check your connection and try again."); setStatus("");
+    }finally{ setLoading(false); }
+  }
+
+  const playCurrent=useCallback(()=>{
+    const p=passageRef.current,i=idxRef.current,v=p[i],audio=audioRef.current;
+    if(!v){ stopPlayback(); return; }
+    if(!v.audioUrl){ advance(); return; }
+    setCurrentIdx(i);
+    if(audio.src!==v.audioUrl) audio.src=v.audioUrl;
+    audio.currentTime=0;
+    audio.play().catch(()=>{ setError("Audio could not start. Tap Play again — mobile browsers require a tap to begin sound."); stopPlayback(); });
+  },[]);
+
+  const advance=useCallback(()=>{
+    repsDoneRef.current++;
+    if(repsDoneRef.current>=repsRef.current){
+      repsDoneRef.current=0; idxRef.current++;
+      if(idxRef.current>=passageRef.current.length){
+        if(loopRef.current){ idxRef.current=0; }
+        else { stopPlayback(); setStatus("Passage complete"); return; }
+      }
+    }
+    playCurrent();
+  },[playCurrent]);
+
+  useEffect(()=>{
+    const audio=audioRef.current; if(!audio) return;
+    const onEnded=()=>{ if(playingRef.current) advance(); };
+    const onErr=()=>{ if(playingRef.current) advance(); };
+    audio.addEventListener("ended",onEnded); audio.addEventListener("error",onErr);
+    return ()=>{ audio.removeEventListener("ended",onEnded); audio.removeEventListener("error",onErr); };
+  },[advance]);
+
+  function startPlayback(){ if(!passageRef.current.length) return; setError(""); playingRef.current=true; setPlaying(true); playCurrent(); }
+  function pausePlayback(){ playingRef.current=false; setPlaying(false); if(audioRef.current) audioRef.current.pause(); }
+  function stopPlayback(){ playingRef.current=false; setPlaying(false); if(audioRef.current) audioRef.current.pause(); setCurrentIdx(-1); }
+  const togglePlay=()=>playing?pausePlayback():startPlayback();
+  function toggleVeil(){ setVeiled(v=>{ const nv=!v; if(!nv) setPeeked({}); return nv; }); }
+  function peek(i){ if(veiled) setPeeked(p=>({...p,[i]:!p[i]})); }
+
+  const hasTrans=passage.some(v=>v.trans);
+  const nowText=currentIdx>=0&&passage[currentIdx]
+    ? (reps>1?`Reciting ${passage[currentIdx].key} · drilling`:`Reciting ${passage[currentIdx].key}`)
+    : (loading?status:(status||"Ready"));
+
+  return (
+    <div className="relative min-h-[100svh] text-cream font-sans">
+      <div className="pointer-events-none fixed -top-[12vh] -left-[14vw] w-[70vw] max-w-[560px] aspect-square rounded-full blur-[70px] opacity-80"
+           style={{background:"radial-gradient(circle, rgba(38,180,118,.8), rgba(31,138,92,.3) 45%, transparent 70%)"}}/>
+      <div className="pointer-events-none fixed -bottom-[8vh] -right-[14vw] w-[62vw] max-w-[500px] aspect-square rounded-full blur-[70px] opacity-75"
+           style={{background:"radial-gradient(circle, rgba(230,205,134,.7), rgba(200,161,75,.3) 45%, transparent 70%)"}}/>
+
+      <div className="relative z-10 mx-auto max-w-[640px] px-4 pt-8 pb-44">
+        <header className="text-center mb-6">
+          <div className="font-ar text-5xl text-goldhi leading-none">حِفْظ</div>
+          <div className="mt-1 text-[0.7rem] tracking-[0.34em] uppercase text-dim">Hifz Repeater</div>
+        </header>
+
+        <motion.section initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{duration:.5}}
+          className="rounded-4xl p-5 mb-6 border border-white/15 backdrop-blur-xl bg-gradient-to-br from-white/[0.10] to-emerald2/40 shadow-[0_12px_40px_-12px_rgba(0,0,0,.55),inset_0_1px_1px_rgba(255,255,255,.25)]">
+          <GlassField label="Surah">
+            <select className={selectClass} value={chapterId} onChange={e=>setChapterId(+e.target.value)}>
+              {chapters.length===0 && <option>Loading…</option>}
+              {chapters.map(c=>(<option key={c.id} value={c.id}>{c.id}. {c.name_simple} — {c.name_arabic} ({c.verses_count})</option>))}
+            </select>
+          </GlassField>
+
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <GlassField label="From ayah">
+              <input type="number" min="1" inputMode="numeric" className={selectClass} value={from} disabled={whole} onChange={e=>setFrom(+e.target.value)} />
+            </GlassField>
+            <GlassField label="To ayah">
+              <input type="number" min="1" inputMode="numeric" className={selectClass} value={to} disabled={whole} onChange={e=>setTo(+e.target.value)} />
+            </GlassField>
+          </div>
+
+          <button onClick={()=>setWhole(w=>!w)}
+            className={"mt-3 w-full py-2.5 rounded-2xl text-[0.82rem] font-semibold border transition "+(whole?"bg-gold/90 text-ink border-gold":"bg-white/5 text-dim border-white/15 hover:border-gold/50")}>
+            {whole?"✓ Whole surah":"Whole surah"}
+          </button>
+
+          <div className="grid grid-cols-1 gap-3 mt-3">
+            <GlassField label="Reciter (Talaqqi)">
+              <select className={selectClass} value={reciter} onChange={e=>setReciter(e.target.value)}>
+                {RECITERS.map(g=>(<optgroup key={g.group} label={g.group}>
+                  {g.items.map(it=><option key={it.v} value={it.v}>{it.label}</option>)}
+                </optgroup>))}
+              </select>
+            </GlassField>
+            <GlassField label="English translation">
+              <select className={selectClass} value={translationId} onChange={e=>setTranslationId(e.target.value)}>
+                {TRANSLATIONS.map(t=><option key={t.v} value={t.v}>{t.label}</option>)}
+              </select>
+            </GlassField>
+          </div>
+
+          <div className="flex items-center gap-3 mt-4">
+            <motion.button whileTap={{scale:.96}} onClick={loadPassage} disabled={loading}
+              className="px-6 py-3 rounded-2xl font-semibold text-ink disabled:opacity-50 bg-gradient-to-br from-goldhi to-gold shadow-[0_8px_30px_-10px_rgba(200,161,75,.55)]">
+              {loading?"Loading…":"Load passage"}
+            </motion.button>
+            <span className="text-[0.82rem] text-dim flex-1 text-right">{status}</span>
+          </div>
+        </motion.section>
+
+        {error && (<div className="rounded-2xl p-3.5 mb-5 text-[0.85rem] bg-red-950/60 border border-red-800/60 text-red-200">{error}</div>)}
+
+        <AnimatePresence>
+          {activeChapter && (
+            <motion.div key="passage" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+              <div className="text-center text-[0.7rem] tracking-[0.2em] uppercase text-goldsoft mb-4">
+                Surah {activeChapter.name_simple} · Ayat {passage[0]&&passage[0].num}–{passage[passage.length-1]&&passage[passage.length-1].num}
+              </div>
+              <div className="space-y-4">
+                {passage.map((v,i)=>{
+                  const active=i===currentIdx, blurred=veiled&&!peeked[i];
+                  return (
+                    <motion.div key={v.key} layout initial={{opacity:0,y:14}} animate={{opacity:1,y:0}}
+                      transition={{duration:.35,delay:Math.min(i*0.03,.3)}} onClick={()=>peek(i)}
+                      className={"relative rounded-4xl px-6 pt-7 pb-6 cursor-pointer select-none bg-gradient-to-b from-creamhi to-cream border "+(active?"border-gold":"border-gold/30")+" shadow-[0_18px_50px_-18px_rgba(0,0,0,.7)] transition-shadow"}
+                      style={active?{boxShadow:"0 22px 60px -16px rgba(200,161,75,.5), 0 0 0 1px rgba(200,161,75,.6) inset"}:{}}>
+                      <div className="absolute -top-3 -right-2 w-9 h-9 rounded-full flex items-center justify-center font-ar text-goldsoft text-sm bg-cream border border-gold/40 shadow">
+                        {arabicDigits(v.num)}
+                      </div>
+                      <div dir="rtl" className={"qtext "+(tajweed?"tj ":"")+"font-ar text-ink text-center leading-[2.3] transition-[filter] duration-500 "+(blurred?"blur-[9px]":"")}
+                        style={{fontSize:"1.75rem"}} dangerouslySetInnerHTML={{__html:(tajweed?v.textTajweed:v.text)}} />
+                    </motion.div>
+                  );
+                })}
+              </div>
+              {veiled && (<div className="text-center mt-5 text-[0.78rem] text-goldsoft">Recite from memory — tap a card to peek, tap again to veil.</div>)}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {activeChapter && (
+          <motion.div initial={{y:120,opacity:0}} animate={{y:0,opacity:1}} exit={{y:120,opacity:0}}
+            transition={{type:"spring",stiffness:320,damping:32}}
+            className="fixed bottom-0 inset-x-0 z-30 px-3 pb-3"
+            style={{paddingBottom:"max(0.75rem, env(safe-area-inset-bottom))"}}>
+            <div className="mx-auto max-w-[640px] rounded-4xl px-4 py-3.5 border border-white/20 backdrop-blur-2xl bg-gradient-to-br from-white/[0.14] to-emerald2/50 shadow-[0_14px_44px_-10px_rgba(0,0,0,.6),inset_0_1px_1px_rgba(255,255,255,.3)]">
+              <div className="flex items-center gap-3">
+                <motion.button whileTap={{scale:.94}} onClick={togglePlay}
+                  className="shrink-0 px-5 py-2.5 rounded-2xl font-semibold text-ink min-w-[92px] bg-gradient-to-br from-goldhi to-gold shadow-[0_8px_24px_-8px_rgba(200,161,75,.6)]">
+                  {playing?"⏸ Pause":"▶ Play"}
+                </motion.button>
+                <motion.button whileTap={{scale:.94}} onClick={toggleVeil}
+                  className="shrink-0 px-4 py-2.5 rounded-2xl font-semibold text-gold border border-gold/40 bg-white/5 backdrop-blur">
+                  {veiled?"Show":"Hide"}
+                </motion.button>
+                <div className="text-[0.8rem] text-dim flex-1 min-w-0 truncate"><span className="text-goldhi font-medium">{nowText}</span></div>
+              </div>
+              <div className="flex items-center gap-3 mt-3 flex-wrap">
+                <select value={reps} onChange={e=>setReps(+e.target.value)}
+                  className="px-3 py-1.5 rounded-xl text-[0.8rem] text-creamhi bg-white/5 border border-white/15 backdrop-blur">
+                  {MODES.map(m=><option key={m.v} value={m.v}>{m.label}</option>)}
+                </select>
+                <label className="flex items-center gap-1.5 text-[0.78rem] text-dim cursor-pointer select-none">
+                  <input type="checkbox" checked={loop} onChange={e=>setLoop(e.target.checked)} className="w-4 h-4 accent-gold" /> Loop
+                </label>
+                <label className="flex items-center gap-1.5 text-[0.78rem] text-dim cursor-pointer select-none">
+                  <input type="checkbox" checked={tajweed} onChange={e=>setTajweed(e.target.checked)} className="w-4 h-4 accent-gold" /> Tajwīd
+                </label>
+                {hasTrans && (<button onClick={()=>setSheetOpen(true)} className="ml-auto px-3 py-1.5 rounded-xl text-[0.78rem] font-medium text-gold border border-gold/40 bg-white/5">Translation ↑</button>)}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {sheetOpen && (<>
+          <motion.div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={()=>setSheetOpen(false)} />
+          <motion.div className="fixed inset-x-0 bottom-0 z-50 rounded-t-5xl border-t border-white/20 bg-gradient-to-b from-emerald2/95 to-emerald1 backdrop-blur-2xl shadow-[0_-20px_60px_-12px_rgba(0,0,0,.7)] max-h-[78vh] flex flex-col"
+            initial={{y:"100%"}} animate={{y:0}} exit={{y:"100%"}} transition={{type:"spring",stiffness:300,damping:32}}
+            drag="y" dragConstraints={{top:0,bottom:0}} dragElastic={0.2} onDragEnd={(e,info)=>{ if(info.offset.y>120) setSheetOpen(false); }}>
+            <div className="pt-3 pb-1 flex justify-center cursor-grab"><div className="w-12 h-1.5 rounded-full bg-white/30" /></div>
+            <div className="px-6 pb-2 flex items-center justify-between">
+              <h3 className="font-serif text-xl text-cream">Translation</h3>
+              <button onClick={()=>setSheetOpen(false)} className="text-dim text-sm px-3 py-1">Close</button>
+            </div>
+            <div className="px-6 pb-8 overflow-y-auto space-y-4">
+              {passage.map(v=>(
+                <div key={v.key} className="border-b border-white/10 pb-4 last:border-0">
+                  <div dir="rtl" className="font-ar text-cream text-right text-xl leading-loose mb-2" dangerouslySetInnerHTML={{__html:v.text}} />
+                  <div className="text-[0.92rem] text-dim leading-relaxed"><span className="text-goldsoft">{v.num}.</span> {v.trans||"—"}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>)}
+      </AnimatePresence>
+
+      <footer className="relative z-10 text-center px-6 pb-6 pt-2 text-[0.74rem] text-dim/70 leading-relaxed">
+        Quranic text and recitations served live by Quran.com and EveryAyah.<br/>
+        Built as a study aid — your teacher remains your teacher.
+      </footer>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+<script>
+if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(()=>{}); }); }
+</script>
+</body>
+</html>
