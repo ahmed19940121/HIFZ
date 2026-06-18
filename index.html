@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Hifz — حِفْظ</title>
+<meta name="description" content="A calm, Apple-inspired Quran memorisation workspace: listen, repeat, veil, recall, and track progress." />
+<meta name="theme-color" content="#050505" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Hifz" />
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Scheherazade+New:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#050505;
+  --bg2:#090b0a;
+  --surface:rgba(255,255,255,.075);
+  --surface-2:rgba(255,255,255,.11);
+  --surface-3:rgba(255,255,255,.16);
+  --stroke:rgba(255,255,255,.14);
+  --stroke-strong:rgba(255,255,255,.26);
+  --text:#f7f7f5;
+  --muted:#a3a3a0;
+  --quiet:#6f726e;
+  --gold:#d4af37;
+  --gold-2:#f0d98a;
+  --success:#30d158;
+  --danger:#ff453a;
+  --page:#f4ecd7;
+  --ink:#222018;
+  --ink-soft:#5c5545;
+  --shadow:0 24px 90px rgba(0,0,0,.55);
+  --radius-lg:34px;
+  --radius:24px;
+  --radius-sm:16px;
+  --max:1120px;
+  --safe-bottom:env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  min-height:100svh;
+  background:
+    radial-gradient(circle at 18% -4%, rgba(212,175,55,.22), transparent 36%),
+    radial-gradient(circle at 85% 12%, rgba(48,209,88,.10), transparent 32%),
+    linear-gradient(180deg,var(--bg),var(--bg2));
+  color:var(--text);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+  overflow-x:hidden;
+}
+button,input,select{font:inherit}
+button{border:0;cursor:pointer;color:inherit}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--gold);color:#15120a}
+.ar{font-family:'Amiri Quran','Scheherazade New',serif}
+.app-shell{max-width:var(--max);margin:0 auto;padding:22px 18px 118px;position:relative}
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:12px 0 18px;backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{width:44px;height:44px;border-radius:14px;overflow:hidden;display:grid;place-items:center;box-shadow:0 10px 35px rgba(212,175,55,.20);border:1px solid rgba(212,175,55,.30)}
+.brand-text strong{display:block;font-size:1rem;letter-spacing:-.02em}.brand-text span{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}
+.icon-btn{width:44px;height:44px;border-radius:999px;background:var(--surface);border:1px solid var(--stroke);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);display:grid;place-items:center;transition:.2s ease}
+.icon-btn:hover{background:var(--surface-2);transform:translateY(-1px)}
+.hero{display:grid;grid-template-columns:1.06fr .94fr;gap:24px;align-items:stretch;margin-top:12px}
+.card{background:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.045));border:1px solid var(--stroke);border-radius:var(--radius-lg);box-shadow:var(--shadow);backdrop-filter:blur(34px) saturate(1.55);-webkit-backdrop-filter:blur(34px) saturate(1.55);position:relative;overflow:hidden}.card:before{content:"";position:absolute;left:24px;right:24px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent)}
+.hero-main{padding:34px;min-height:430px;display:flex;flex-direction:column;justify-content:space-between}.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.22em;color:var(--gold-2);font-weight:700}.hero-main h1{font-size:clamp(3.8rem,10vw,7rem);letter-spacing:-.075em;line-height:.9;margin:28px 0 14px}.tagline{font-size:clamp(1.1rem,2.4vw,1.55rem);line-height:1.35;letter-spacing:-.035em;color:#e9e9e4;max-width:12ch}.subcopy{color:var(--muted);line-height:1.65;max-width:52ch;margin-top:20px}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:34px}.btn{min-height:48px;border-radius:999px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;transition:.18s ease;border:1px solid transparent}.btn:active{transform:scale(.985)}.btn-primary{background:var(--text);color:#080808}.btn-primary:hover{background:#fff;box-shadow:0 12px 30px rgba(255,255,255,.12)}.btn-gold{background:linear-gradient(145deg,var(--gold-2),var(--gold));color:#191306}.btn-ghost{background:var(--surface);border-color:var(--stroke);color:var(--text);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.btn-ghost:hover{background:var(--surface-2)}
+.resume-card{padding:24px;display:flex;flex-direction:column;gap:18px}.resume-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.resume-header h2{font-size:1.25rem;letter-spacing:-.03em}.resume-header p{font-size:.84rem;color:var(--muted);margin-top:5px}.ring-wrap{width:138px;height:138px;position:relative;margin:14px auto}.ring{width:138px;height:138px;border-radius:50%;background:conic-gradient(var(--gold) calc(var(--progress,0)*1%), rgba(255,255,255,.10) 0);display:grid;place-items:center}.ring::after{content:"";width:102px;height:102px;background:#111;border-radius:50%;box-shadow:inset 0 0 0 1px var(--stroke)}.ring-label{position:absolute;inset:0;display:grid;place-items:center;text-align:center}.ring-label strong{display:block;font-size:1.65rem;letter-spacing:-.05em}.ring-label span{display:block;color:var(--muted);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em}.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{padding:15px;border-radius:20px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09)}.metric b{font-size:1.45rem;letter-spacing:-.05em}.metric span{display:block;color:var(--muted);font-size:.75rem;margin-top:3px}
+.section{margin-top:26px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:18px;margin:0 4px 12px}.section-head h2{font-size:1.35rem;letter-spacing:-.04em}.section-head p{color:var(--muted);font-size:.9rem;margin-top:5px}.workspace{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}.control-panel{padding:20px;position:sticky;top:86px}.panel-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.panel-title h3{font-size:1.05rem;letter-spacing:-.03em}.pill{font-size:.72rem;font-weight:700;color:var(--gold-2);padding:7px 10px;border-radius:999px;background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.22)}.form-stack{display:grid;gap:12px}.field label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:700;margin:0 0 7px 4px}.field select,.field input{width:100%;min-height:48px;padding:0 14px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.075);color:var(--text);outline:0}.field select:focus,.field input:focus{border-color:rgba(212,175,55,.7);box-shadow:0 0 0 4px rgba(212,175,55,.10)}select option,optgroup{background:#151515;color:white}.range{display:grid;grid-template-columns:1fr 1fr;gap:10px}.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:0 4px;color:var(--muted);font-size:.9rem}.switch{position:relative;width:52px;height:32px}.switch input{opacity:0;position:absolute}.slider{position:absolute;inset:0;border-radius:999px;background:rgba(255,255,255,.15);transition:.2s}.slider:after{content:"";position:absolute;width:28px;height:28px;left:2px;top:2px;background:white;border-radius:50%;transition:.2s;box-shadow:0 4px 14px rgba(0,0,0,.35)}.switch input:checked + .slider{background:var(--gold)}.switch input:checked + .slider:after{transform:translateX(20px)}.status{min-height:20px;font-size:.82rem;color:var(--muted);text-align:center;margin-top:6px}.err{display:none;margin-top:12px;padding:12px 14px;border-radius:16px;background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.25);color:#ffb4ae;font-size:.86rem;line-height:1.45}.err.visible{display:block}.advanced{margin-top:12px;border-top:1px solid rgba(255,255,255,.10);padding-top:14px;display:none}.advanced.open{display:grid;gap:12px}.disclosure{width:100%;justify-content:space-between;margin-top:12px}
+.reader-shell{min-height:640px}.reader-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,.08)}.reader-title{min-width:0}.reader-title h3{font-size:1rem;letter-spacing:-.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.reader-title p{color:var(--muted);font-size:.82rem;margin-top:4px}.mode-actions{display:flex;gap:9px;align-items:center}.page{display:none;margin:22px;padding:32px 28px;border-radius:30px;background:var(--page);color:var(--ink);box-shadow:0 20px 80px rgba(0,0,0,.35),inset 0 0 0 1px rgba(212,175,55,.35);position:relative}.page.visible{display:block}.page.veiled .verse-main,.page.veiled .trans{filter:blur(10px);user-select:none}.page.veiled .verse.peek .verse-main,.page.veiled .verse.peek .trans{filter:blur(0)}.page-head{text-align:center;color:#9c803b;text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;font-weight:800;margin-bottom:22px}.verses{direction:rtl;text-align:right}.verse{display:block;border-radius:22px;padding:12px 14px;margin-bottom:10px;transition:.25s ease;cursor:pointer}.verse:hover{background:rgba(212,175,55,.08)}.verse.now-playing{background:rgba(212,175,55,.19);box-shadow:inset 0 0 0 1px rgba(212,175,55,.26)}.verse-main{font-family:'Amiri Quran','Scheherazade New',serif;font-size:clamp(1.75rem,4vw,2.4rem);line-height:2.2;transition:filter .35s ease}.marker{font-family:'Scheherazade New',serif;color:#9c803b;font-size:.8em;margin-inline-start:8px}.trans{direction:ltr;text-align:left;color:var(--ink-soft);font-style:italic;line-height:1.55;font-size:.95rem;margin-top:10px;padding-top:10px;border-top:1px solid rgba(156,128,59,.25);transition:filter .35s ease}.empty-state{padding:64px 24px;text-align:center;color:var(--muted)}.empty-state .ar{display:block;color:var(--gold);font-size:3rem;margin-bottom:10px}.empty-state h3{color:var(--text);font-size:1.35rem;letter-spacing:-.04em;margin-bottom:8px}
+.panel-brand{display:flex;align-items:center;gap:11px;padding-bottom:16px;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07)}
+.panel-brand .brand-mark{width:40px;height:40px;border-radius:12px;overflow:hidden;flex-shrink:0;border:1px solid rgba(212,175,55,.30);box-shadow:0 8px 24px rgba(212,175,55,.18)}
+.panel-brand-text{flex:1;min-width:0;line-height:1.2}
+.panel-brand-text strong{display:block;font-size:1.15rem;color:var(--gold-2)}
+.panel-brand-text span{font-size:.7rem;color:var(--muted)}
+.reading-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.veil-hint{display:none;text-align:center;color:#9c803b;font-weight:700;font-size:.83rem;margin-top:18px}.page.veiled .veil-hint{display:block}
+.verse tajweed{color:inherit}.page.tajweed tajweed.ghunnah,.page.tajweed tajweed.idgham_ghunnah,.page.tajweed tajweed.idgham_shafawi,.page.tajweed tajweed.iqlab{color:#268a46}.page.tajweed tajweed.ikhafa,.page.tajweed tajweed.ikhafa_shafawi{color:#147b8e}.page.tajweed tajweed.qalaqah{color:#1d6fb8}.page.tajweed tajweed.madda_normal,.page.tajweed tajweed.madda_permissible,.page.tajweed tajweed.madda_necessary,.page.tajweed tajweed.madda_obligatory{color:#b03030}.page.tajweed tajweed.ham_wasl,.page.tajweed tajweed.laam_shamsiyah,.page.tajweed tajweed.slnt{color:#8d8265}.page.tajweed tajweed.idgham_wo_ghunnah,.page.tajweed tajweed.idgham_mutajanisayn{color:#7a4ea3}
+.mini-player{position:fixed;left:50%;bottom:calc(18px + var(--safe-bottom));transform:translateX(-50%);width:min(720px,calc(100% - 28px));z-index:90;padding:12px 14px;border-radius:28px;background:rgba(24,24,24,.72);border:1px solid rgba(255,255,255,.16);box-shadow:0 18px 70px rgba(0,0,0,.55);backdrop-filter:blur(32px) saturate(1.7);-webkit-backdrop-filter:blur(32px) saturate(1.7);display:none}.mini-player.visible{display:block}.player-row{display:flex;align-items:center;gap:12px}.play-circle{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--text);color:#080808;font-weight:900}.now{flex:1;min-width:0}.now strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.95rem}.now span{display:block;color:var(--muted);font-size:.78rem;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.progress-line{height:4px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:12px}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--gold),var(--gold-2));border-radius:999px;transition:width .25s ease}.player-extra{display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.mini-player.expanded .player-extra{display:grid}.small-select{min-height:40px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:var(--text);padding:0 10px;width:100%}.mini-toggle{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.82rem}.bottom-nav{position:fixed;left:50%;bottom:calc(86px + var(--safe-bottom));transform:translateX(-50%);display:flex;gap:7px;padding:7px;border-radius:999px;background:rgba(22,22,22,.60);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);z-index:80;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s ease}
+body.in-app .bottom-nav{opacity:1;visibility:visible}.nav-item{height:42px;padding:0 14px;border-radius:999px;display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.84rem;font-weight:700;background:transparent}.nav-item.active{background:rgba(255,255,255,.12);color:var(--text)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.54);z-index:120;display:none;align-items:end;justify-content:center;padding:18px}.modal.open{display:flex}.sheet{width:min(640px,100%);background:rgba(26,26,26,.88);border:1px solid rgba(255,255,255,.18);border-radius:32px;padding:20px;box-shadow:0 24px 100px rgba(0,0,0,.65);backdrop-filter:blur(36px) saturate(1.5);-webkit-backdrop-filter:blur(36px) saturate(1.5)}.sheet-head{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:16px}.sheet-head h3{font-size:1.25rem;letter-spacing:-.04em}.sheet p{color:var(--muted);line-height:1.6;margin-bottom:16px}.kbd{display:inline-flex;min-width:26px;height:26px;align-items:center;justify-content:center;border-radius:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);font-weight:700;color:#fff}
+@media (max-width:900px){.hero,.workspace{grid-template-columns:1fr}.control-panel{position:relative;top:auto}.reader-shell{min-height:520px}.bottom-nav{bottom:calc(82px + var(--safe-bottom))}}
+@media (max-width:560px){.app-shell{padding-inline:12px}.brand-text span{display:none}.hero-main{padding:26px;min-height:360px}.hero-main h1{font-size:4.5rem}.metric-grid{grid-template-columns:1fr 1fr}.section-head{display:block}.range{grid-template-columns:1fr 1fr}.reader-top{align-items:flex-start}.mode-actions{flex-wrap:wrap;justify-content:flex-end}.page{margin:12px;padding:22px 14px;border-radius:24px}.verse{padding:10px 8px}.verse-main{font-size:1.75rem}.player-extra{grid-template-columns:1fr}.nav-item span{display:none}.bottom-nav{padding:6px}.nav-item{width:44px;justify-content:center;padding:0}.mini-player{width:calc(100% - 18px)}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* ===== cinematic landing (scoped lp-) ===== */
+.lp{position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:90px 22px 70px;overflow:hidden}
+.lp-star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
+.lp-star svg{width:min(82vw,560px);height:auto;opacity:.5;overflow:visible}
+.lp-star path,.lp-star circle{fill:none;stroke:var(--gold);stroke-width:.7;vector-effect:non-scaling-stroke}
+.lp-inner{position:relative;z-index:1;max-width:780px}
+.lp-eyebrow{display:block;font-size:.72rem;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:34px}
+.lp-eyebrow .ar{font-size:1.05rem;letter-spacing:0;margin-inline-start:.5em;color:var(--gold-2)}
+.lp-ayah{display:inline-block;cursor:pointer;border:none;background:none;color:var(--page);font-family:'Amiri Quran','Scheherazade New',serif;font-size:clamp(1.7rem,5.6vw,3.1rem);line-height:2.05;direction:rtl;transition:filter .9s cubic-bezier(.22,.8,.3,1);will-change:filter;padding:4px 10px}
+.lp-ayah .end{color:var(--gold);font-size:.62em;margin-inline-end:.35em}
+.lp-ayah.veiled{filter:blur(12px)}
+.lp-rendering{margin-top:22px;color:var(--muted);font-family:'Fraunces',serif;font-style:italic;font-weight:300;font-size:clamp(.98rem,2.4vw,1.18rem);line-height:1.6;max-width:46ch;margin-inline:auto}
+.lp-rendering cite{font-style:normal;font-size:.78em;color:var(--gold);letter-spacing:.12em;display:block;margin-top:8px}
+.lp-hint{margin-top:30px;font-size:.78rem;letter-spacing:.08em;color:var(--muted)}
+.lp-hint b{color:var(--gold-2);font-weight:600}
+.lp-ctas{margin-top:36px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.lp-cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--gold);font-size:1.3rem;opacity:.7;z-index:1;text-decoration:none}
+.lp-method{padding:96px 22px;position:relative;z-index:1}
+.lp-method .inner{max-width:760px;margin:0 auto}
+.lp-sec-head{margin-bottom:48px;max-width:560px}
+.lp-sec-head .lp-eyebrow{margin-bottom:14px}
+.lp-sec-head h2{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(1.7rem,4.5vw,2.5rem);line-height:1.2;color:var(--text);margin-top:6px}
+.lp-sec-head p{margin-top:16px;color:var(--muted);line-height:1.65}
+.lp-step{display:grid;grid-template-columns:120px 1fr;gap:26px;padding:38px 0;border-top:1px solid rgba(212,175,55,.22);align-items:start}
+.lp-step:last-child{border-bottom:1px solid rgba(212,175,55,.22)}
+.lp-step .term{text-align:center}
+.lp-step .term .arb{display:block;font-family:'Amiri Quran','Scheherazade New',serif;font-size:2.2rem;color:var(--gold-2);line-height:1.4}
+.lp-step .term .lat{display:block;font-size:.68rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-top:6px}
+.lp-step h3{font-family:'Fraunces',serif;font-weight:400;font-size:1.35rem;color:var(--text)}
+.lp-step p{margin-top:10px;color:var(--muted);line-height:1.65}
+@media (max-width:560px){.lp-step{grid-template-columns:1fr;gap:14px;padding:30px 0}.lp-step .term{text-align:left;display:flex;align-items:baseline;gap:14px}.lp-step .term .lat{margin-top:0}.lp-ctas{flex-direction:column;align-items:stretch;max-width:320px;margin-inline:auto}}
+</style>
+</head>
+<body>
+<header class="lp" id="top">
+  <div class="lp-star" aria-hidden="true">
+    <svg id="lpStar" viewBox="0 0 200 200">
+      <path id="lpSq1" d="M30 30 H170 V170 H30 Z"/>
+      <path id="lpSq2" d="M100 1 L199 100 L100 199 L1 100 Z"/>
+      <circle id="lpRing" cx="100" cy="100" r="52"/>
+    </svg>
+  </div>
+  <div class="lp-inner">
+    <span class="lp-eyebrow" data-load>Hifz Repeater <span class="ar">· حِفْظ</span></span>
+    <button class="lp-ayah veiled" id="lpAyah" data-load aria-label="Quran 54:17 — tap to veil or unveil the verse">
+      فَلَقَدۡ يَسَّرۡنَا ٱلۡقُرۡءَانَ لِلذِّكۡرِ فَهَلۡ مِن مُّدَّكِرٖ<span class="end">﴿١٧﴾</span>
+    </button>
+    <p class="lp-rendering" data-load>
+      We made the Quran easy to remember — so will anyone take heed?
+      <cite>AL-QAMAR · 54:17</cite>
+    </p>
+    <p class="lp-hint" data-load><b>Tap the verse.</b> That veil is the whole idea.</p>
+    <div class="lp-ctas" data-load>
+      <a class="btn btn-gold" href="#study">Open the Quran</a>
+      <a class="btn btn-ghost" href="#method">See the method</a>
+    </div>
+  </div>
+  <a class="lp-cue" href="#method" id="lpCue" aria-label="Scroll to the method">▾</a>
+</header>
+
+<section class="lp-method" id="method">
+  <div class="inner">
+    <div class="lp-sec-head" data-unveil>
+      <span class="lp-eyebrow">The method</span>
+      <h2>Nothing new. That is the point.</h2>
+      <p>For fourteen centuries the Quran has been memorised the same way: hear it from a reciter, repeat it until it settles, then recite it back unseen. This tool only removes the friction.</p>
+    </div>
+    <div class="lp-steps">
+      <div class="lp-step" data-unveil>
+        <div class="term"><span class="arb">تَلَقِّي</span><span class="lat">Talaqqi</span></div>
+        <div>
+          <h3>Receive it from a reciter</h3>
+          <p>Choose from nine recitations — classical voices like Husary's Mu'allim teaching recording, or contemporary ones like Maher al-Muaiqly — and let the correct sound become the memory itself.</p>
+        </div>
+      </div>
+      <div class="lp-step" data-unveil>
+        <div class="term"><span class="arb">تَكْرَار</span><span class="lat">Takrar</span></div>
+        <div>
+          <h3>Repeat each ayah until it holds</h3>
+          <p>The loop engine plays one ayah three, five, seven or ten times before moving to the next — then cycles the whole passage again. The old counting method, counted for you.</p>
+        </div>
+      </div>
+      <div class="lp-step" data-unveil>
+        <div class="term"><span class="arb">حِفْظ</span><span class="lat">Hifz</span></div>
+        <div>
+          <h3>Veil the page and recite</h3>
+          <p>One tap blurs the ink while the page stays in front of you. Stuck on a single ayah? Tap it to peek — the way a teacher lets you glance at one word, never the whole page.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="app-shell">
+  <header class="topbar" style="display:none">
+    <a class="brand" href="#home" aria-label="Hifz home">
+      <div class="brand-mark" aria-hidden="true">
+        <img src="icons/icon-192.png" alt="" width="44" height="44" style="display:block;width:100%;height:100%;object-fit:cover">
+      </div>
+      <div class="brand-text"><strong class="ar" style="font-size:1.2rem">حِفْظ</strong><span>One page. One voice. One memory.</span></div>
+    </a>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <div class="card hero-main">
+        <div>
+          <div class="eyebrow">حِفْظ · Memorisation</div>
+          <h1 class="ar" style="direction:rtl">حِفْظ</h1>
+          <p class="tagline">Hifz — memorise the Quran beautifully.</p>
+          <p class="subcopy">A calm study space for talaqqi, repetition, active recall, and veiled recitation. Built to remove friction, not replace your teacher.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#study">Start session</a>
+          <button class="btn btn-ghost" id="quickLoadBtn">Load Al-Fātiḥah</button>
+        </div>
+      </div>
+
+      <aside class="card resume-card" aria-label="Progress summary">
+        <div class="resume-header">
+          <div><h2>Today</h2><p>Your memorisation momentum</p></div>
+          <span class="pill" id="streakPill">0 day streak</span>
+        </div>
+        <div class="ring-wrap">
+          <div class="ring" id="progressRing" style="--progress:0"></div>
+          <div class="ring-label"><div><strong id="progressPct">0%</strong><span>session</span></div></div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric"><b id="ayatMetric">0</b><span>ayat loaded</span></div>
+          <div class="metric"><b id="repeatMetric">0</b><span>repeats done</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" id="study">
+      <div class="section-head">
+        <div><h2>Study workspace</h2><p>Choose a passage, listen, hide the page, and recite from memory.</p></div>
+      </div>
+
+      <div class="workspace">
+        <aside class="card control-panel" aria-label="Passage controls">
+          <div class="panel-brand">
+            <div class="brand-mark" aria-hidden="true"><img src="icons/icon-192.png" alt="" style="display:block;width:100%;height:100%;object-fit:cover"></div>
+            <div class="panel-brand-text"><strong class="ar">حِفْظ</strong><span>One page. One voice. One memory.</span></div>
+            <button class="icon-btn" id="helpBtn" aria-label="Open help">?</button>
+          </div>
+          <div class="panel-title"><h3>Passage</h3><span class="pill">Live Quran.com</span></div>
+          <div class="form-stack">
+            <div class="field"><label for="surah">Surah</label><select id="surah"><option>Loading surahs…</option></select></div>
+            <div class="range">
+              <div class="field"><label for="from">From</label><input type="number" id="from" min="1" value="1" inputmode="numeric"></div>
+              <div class="field"><label for="to">To</label><input type="number" id="to" min="1" value="5" inputmode="numeric"></div>
+            </div>
+            <div class="toggle-row"><span>Whole surah</span><label class="switch"><input type="checkbox" id="whole"><span class="slider"></span></label></div>
+            <button class="btn btn-gold" id="loadBtn">Load passage</button>
+            <div class="reading-row">
+              <button class="btn btn-ghost" id="hideBtn">Veil</button>
+              <button class="btn btn-ghost" id="tajweedBtn">Tajwīd</button>
+            </div>
+            <button class="btn btn-ghost disclosure" id="advancedBtn" aria-expanded="false"><span>Audio & translation</span><span>⌄</span></button>
+            <div class="advanced" id="advancedPanel">
+              <div class="field"><label for="reciter">Reciter</label><select id="reciter"><optgroup label="Classical / Teaching"><option value="q:6">Mahmoud Khalil al-Husary</option><option value="q:12">Husary — Mu'allim</option><option value="q:2">AbdulBaset AbdulSamad</option><option value="q:9">Mohamed Siddiq al-Minshawi</option></optgroup><optgroup label="Contemporary"><option value="q:7" selected>Mishari Rashid al-Afasy</option><option value="q:10">Saud ash-Shuraym</option><option value="q:3">Abdur-Rahman as-Sudais</option><option value="e:MaherAlMuaiqly128kbps">Maher al-Muaiqly</option><option value="e:Ghamadi_40kbps">Saad al-Ghamdi</option></optgroup></select></div>
+              <div class="field"><label for="trans">Translation</label><select id="trans"><option value="">None — Arabic only</option><option value="20">Saheeh International</option><option value="85">M.A.S. Abdel Haleem</option><option value="203">Al-Hilali & Khan</option><option value="84">T. Usmani</option></select></div>
+            </div>
+            <div class="status" id="status"></div><div class="err" id="err"></div>
+          </div>
+        </aside>
+
+        <section class="card reader-shell" aria-label="Quran reader">
+          <div class="reader-top">
+            <div class="reader-title"><h3 id="readerTitle">No passage loaded</h3><p id="readerSub">Load a passage to begin.</p></div>
+          </div>
+          <div class="empty-state" id="emptyState"><h3>Ready when you are.</h3><p>Choose a small passage. Listen first. Then veil the page and recall.</p></div>
+          <div class="page" id="page">
+            <div class="page-head" id="pageHead"></div>
+            <div class="verses" id="verses"></div>
+            <div class="veil-hint">Memory mode — tap one ayah to peek, tap again to veil it.</div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="bottom-nav" aria-label="Primary navigation">
+  <a class="nav-item active" href="#home">⌂ <span>Home</span></a>
+  <a class="nav-item" href="#study">◉ <span>Study</span></a>
+  <button class="nav-item" id="progressBtn">◎ <span>Progress</span></button>
+</nav>
+
+<div class="mini-player" id="player" aria-label="Audio player">
+  <div class="player-row">
+    <button class="play-circle" id="playBtn" aria-label="Play or pause">▶</button>
+    <div class="now"><strong id="nowTitle">Ready</strong><span id="nowSub">Load a passage to begin.</span></div>
+    <button class="icon-btn" id="expandPlayer" aria-label="Expand player">⌃</button>
+  </div>
+  <div class="progress-line"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="player-extra">
+    <select class="small-select" id="reps"><option value="1">Read through</option><option value="3" selected>Repeat each ayah 3×</option><option value="5">Repeat each ayah 5×</option><option value="7">Repeat each ayah 7×</option><option value="10">Repeat each ayah 10×</option></select>
+    <label class="mini-toggle"><input type="checkbox" id="loop" checked> Loop passage</label>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="sheet"><div class="sheet-head"><h3 id="modalTitle">Hifz</h3><button class="icon-btn" id="closeModal">×</button></div><div id="modalBody"></div></div></div>
+<audio id="audio" preload="auto"></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+/* cinematic landing motion — independent of the app engine below */
+(function(){
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const ayah = document.getElementById("lpAyah");
+  if(ayah) ayah.addEventListener("click", () => ayah.classList.toggle("veiled"));
+  if(reduced || !window.gsap){ if(ayah) ayah.classList.remove("veiled"); return; }
+  gsap.registerPlugin(ScrollTrigger);
+  ["lpSq1","lpSq2","lpRing"].forEach(id => {
+    const e = document.getElementById(id); if(!e) return;
+    const len = e.getTotalLength(); e.style.strokeDasharray = len; e.style.strokeDashoffset = len;
+  });
+  gsap.timeline({defaults:{ease:"power3.out"}})
+    .to("#lpSq1",{strokeDashoffset:0,duration:1.5},0)
+    .to("#lpSq2",{strokeDashoffset:0,duration:1.5},.25)
+    .to("#lpRing",{strokeDashoffset:0,duration:1.2},.5)
+    .from(".lp [data-load]",{opacity:0,y:18,duration:.9,stagger:.12},.55)
+    .add(() => ayah && ayah.classList.remove("veiled"), 1.05);
+  gsap.to("#lpStar",{rotation:360,transformOrigin:"50% 50%",duration:160,repeat:-1,ease:"none"});
+  gsap.to("#lpCue",{y:6,duration:1.1,repeat:-1,yoyo:true,ease:"sine.inOut"});
+  gsap.utils.toArray(".lp-method [data-unveil]").forEach(e => {
+    gsap.fromTo(e,{opacity:0,y:26,filter:"blur(8px)"},
+      {opacity:1,y:0,filter:"blur(0px)",duration:1,ease:"power3.out",
+       scrollTrigger:{trigger:e,start:"top 84%"}});
+  });
+})();
+
+/* reveal the app's bottom nav only once the landing is scrolled past */
+(function(){
+  const shell = document.querySelector(".app-shell");
+  if(!shell) return;
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => document.body.classList.toggle("in-app", en.isIntersecting));
+  }, {rootMargin:"-40% 0px -55% 0px"});
+  io.observe(shell);
+})();
+</script>
+
+<script>
+(function(){
+  const API="https://api.quran.com/api/v4";
+  const QDC_AUDIO_BASE="https://verses.quran.com/";
+  const EVERYAYAH_BASE="https://everyayah.com/data/";
+  const el=id=>document.getElementById(id);
+  const surahSel=el("surah"), fromIn=el("from"), toIn=el("to"), wholeChk=el("whole"), reciterSel=el("reciter"), transSel=el("trans"), loadBtn=el("loadBtn"), quickLoadBtn=el("quickLoadBtn"), statusEl=el("status"), errEl=el("err"), page=el("page"), versesEl=el("verses"), pageHead=el("pageHead"), emptyState=el("emptyState"), readerTitle=el("readerTitle"), readerSub=el("readerSub"), hideBtn=el("hideBtn"), tajweedBtn=el("tajweedBtn"), player=el("player"), playBtn=el("playBtn"), expandPlayer=el("expandPlayer"), nowTitle=el("nowTitle"), nowSub=el("nowSub"), progressFill=el("progressFill"), repsSel=el("reps"), loopChk=el("loop"), audio=el("audio"), progressRing=el("progressRing"), progressPct=el("progressPct"), ayatMetric=el("ayatMetric"), repeatMetric=el("repeatMetric"), streakPill=el("streakPill"), modal=el("modal"), modalTitle=el("modalTitle"), modalBody=el("modalBody"), closeModal=el("closeModal");
+  let chapters=[], passage=[], idx=0, repsDone=0, totalRepeats=0, playing=false, currentChapter=null, withTrans=false;
+  const pad3=n=>String(n).padStart(3,"0");
+  const arabicDigits=n=>String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
+  const haptic=()=>{try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}};
+  function showErr(msg){errEl.textContent=msg;errEl.classList.add("visible")}
+  function clearErr(){errEl.classList.remove("visible")}
+  function setStatus(msg){statusEl.textContent=msg||""}
+  function stripFootnotes(html){const div=document.createElement("div");div.innerHTML=html;div.querySelectorAll("sup").forEach(s=>s.remove());return div.textContent.trim()}
+  function syncRange(){const c=chapters.find(x=>x.id==surahSel.value);if(!c)return;fromIn.max=toIn.max=c.verses_count;if(wholeChk.checked){fromIn.value=1;toIn.value=c.verses_count}else{if(+fromIn.value>c.verses_count)fromIn.value=1;if(+toIn.value>c.verses_count)toIn.value=Math.min(5,c.verses_count)}}
+  surahSel.addEventListener("change",syncRange);wholeChk.addEventListener("change",()=>{fromIn.disabled=toIn.disabled=wholeChk.checked;syncRange()});
+  el("advancedBtn").addEventListener("click",()=>{const p=el("advancedPanel");const open=p.classList.toggle("open");el("advancedBtn").setAttribute("aria-expanded",open?"true":"false")});
+  hideBtn.addEventListener("click",()=>{if(!passage.length)return;const veiled=page.classList.toggle("veiled");hideBtn.textContent=veiled?"Show":"Veil";if(!veiled)passage.forEach(v=>v.node&&v.node.classList.remove("peek"));haptic()});
+  tajweedBtn.addEventListener("click",()=>{if(!passage.length)return;page.classList.toggle("tajweed");tajweedBtn.classList.toggle("btn-gold");renderPassage(currentChapter,withTrans,true)});
+  expandPlayer.addEventListener("click",()=>player.classList.toggle("expanded"));
+  async function init(){try{const d=await fetch(API+"/chapters?language=en").then(r=>r.json());chapters=d.chapters;surahSel.innerHTML=chapters.map(c=>`<option value="${c.id}">${c.id}. ${c.name_simple} — ${c.name_arabic} (${c.verses_count})</option>`).join("");surahSel.value="1";syncRange()}catch(e){showErr("Could not load the surah list. Check your connection and reload.")}}
+  async function resolveAudioMap(chapterNum){const [src,ref]=reciterSel.value.split(":");const map={};if(src==="e"){const c=chapters.find(x=>x.id==chapterNum);for(let n=1;n<=c.verses_count;n++)map[chapterNum+":"+n]=EVERYAYAH_BASE+ref+"/"+pad3(chapterNum)+pad3(n)+".mp3";return map}const d=await fetch(`${API}/recitations/${ref}/by_chapter/${chapterNum}?per_page=300`).then(r=>r.json());(d.audio_files||[]).forEach(f=>{if(!f.url)return;let u=f.url;if(u.startsWith("//"))u="https:"+u;else if(!u.startsWith("http"))u=QDC_AUDIO_BASE+u.replace(/^\/+/,"");map[f.verse_key]=u});return map}
+  async function loadPassage(){clearErr();stopPlayback();const c=chapters.find(x=>x.id==surahSel.value);if(!c)return;let a=Math.max(1,Math.min(+fromIn.value||1,c.verses_count));let b=Math.max(1,Math.min(+toIn.value||a,c.verses_count));if(b<a)[a,b]=[b,a];fromIn.value=a;toIn.value=b;loadBtn.disabled=true;setStatus("Fetching verses…");try{const jobs=[fetch(`${API}/quran/verses/uthmani?chapter_number=${c.id}`).then(r=>r.json()),fetch(`${API}/quran/verses/uthmani_tajweed?chapter_number=${c.id}`).then(r=>r.json()).catch(()=>null)];const tid=transSel.value;if(tid)jobs.push(fetch(`${API}/quran/translations/${tid}?chapter_number=${c.id}`).then(r=>r.json()));const [tr,tj,tl]=await Promise.all(jobs);const tajByKey={};if(tj&&tj.verses)tj.verses.forEach(v=>tajByKey[v.verse_key]=v.text_uthmani_tajweed);const slice=tr.verses.filter(v=>{const n=+v.verse_key.split(":")[1];return n>=a&&n<=b});setStatus("Fetching recitation…");const audioMap=await resolveAudioMap(c.id);passage=slice.map(v=>{const n=+v.verse_key.split(":")[1];return{key:v.verse_key,num:n,text:v.text_uthmani,textTajweed:(tajByKey[v.verse_key]||v.text_uthmani).replace(/<span class=end>.*?<\/span>/g,"").replace(/<tajweed class=end>.*?<\/tajweed>/g,"").trim(),trans:tid&&tl&&tl.translations&&tl.translations[n-1]?stripFootnotes(tl.translations[n-1].text):null,audioUrl:audioMap[v.verse_key]||null,node:null}});renderPassage(c,!!tid);setStatus(`${passage.length} ayah${passage.length>1?"s":""} loaded`);haptic()}catch(e){showErr("Could not fetch the passage. Check your connection and try again.");setStatus("")}finally{loadBtn.disabled=false}}
+  function renderPassage(c,hasTrans,preserveState){currentChapter=c;withTrans=hasTrans;readerTitle.textContent=`Surah ${c.name_simple}`;readerSub.textContent=`Ayat ${passage[0].num}–${passage[passage.length-1].num}`;pageHead.textContent=`${c.name_simple} · ${passage[0].num}–${passage[passage.length-1].num}`;versesEl.innerHTML="";const useTaj=page.classList.contains("tajweed");passage.forEach((v,vi)=>{const node=document.createElement("div");node.className="verse";node.tabIndex=0;const body=useTaj?v.textTajweed:v.text;node.innerHTML=`<div class="verse-main" lang="ar">${body}<span class="marker">﴿${arabicDigits(v.num)}﴾</span></div>${hasTrans&&v.trans?`<div class="trans">${v.num}. ${v.trans}</div>`:""}`;const onTap=()=>{if(page.classList.contains("veiled")){node.classList.toggle("peek");haptic()}else{playFrom(vi)}};node.addEventListener("click",onTap);node.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();onTap()}});v.node=node;versesEl.appendChild(node)});emptyState.style.display="none";page.classList.add("visible");player.classList.add("visible");if(preserveState){if(playing)highlight(idx);}else{page.classList.remove("veiled");hideBtn.textContent="Veil";idx=0;repsDone=0;totalRepeats=0;updateProgress();updateNow("Ready","Press play when you are ready.")}}
+  function highlight(i){passage.forEach((v,j)=>v.node&&v.node.classList.toggle("now-playing",i===j));const cur=passage[i]&&passage[i].node;if(cur&&playing){try{cur.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){cur.scrollIntoView()}}}
+  function updateProgress(){const done=passage.length?Math.min(100,Math.round(((idx+(repsDone/+repsSel.value))/passage.length)*100)):0;progressFill.style.width=done+"%";progressRing.style.setProperty("--progress",done);progressPct.textContent=done+"%";ayatMetric.textContent=passage.length;repeatMetric.textContent=totalRepeats;streakPill.textContent=(totalRepeats>0?"1 day":"0 day")+" streak"}
+  function updateNow(title,sub){nowTitle.textContent=title;nowSub.textContent=sub}
+  function playCurrent(){const v=passage[idx];if(!v){stopPlayback();return}highlight(idx);updateNow(`Surah ${currentChapter.name_simple} · ${v.key}`,+repsSel.value>1?`Repeat ${repsDone+1} of ${repsSel.value}`:"Reading through");updateProgress();if(!v.audioUrl){advance();return}if(audio.src!==v.audioUrl)audio.src=v.audioUrl;audio.currentTime=0;audio.play().catch(()=>{showErr("Audio could not start. Tap Play again — mobile browsers require a tap first.");pausePlayback()})}
+  function advance(){repsDone++;if(+repsSel.value>1)totalRepeats++;if(repsDone>=+repsSel.value){repsDone=0;idx++;haptic();if(idx>=passage.length){if(loopChk.checked){idx=0}else{stopPlayback();updateNow("Passage complete","Beautiful. Review it again or load the next section.");updateProgress();return}}}playCurrent()}
+  function playFrom(i){if(!passage.length)return;clearErr();idx=Math.max(0,Math.min(i,passage.length-1));repsDone=0;playing=true;playBtn.textContent="Ⅱ";playCurrent();haptic()}
+  audio.addEventListener("ended",()=>{if(playing)advance()});audio.addEventListener("error",()=>{if(playing)advance()});
+  function startPlayback(){if(!passage.length)return;clearErr();playing=true;playBtn.textContent="Ⅱ";playCurrent()}function pausePlayback(){playing=false;audio.pause();playBtn.textContent="▶";updateNow("Paused","Press play to continue.")}function stopPlayback(){playing=false;audio.pause();playBtn.textContent="▶";highlight(-1);updateProgress()}playBtn.addEventListener("click",()=>playing?pausePlayback():startPlayback());repsSel.addEventListener("change",()=>{repsDone=0;updateProgress()});loadBtn.addEventListener("click",loadPassage);quickLoadBtn.addEventListener("click",()=>{surahSel.value="1";fromIn.value=1;toIn.value=7;transSel.value="";loadPassage();location.hash="#study"});
+  function openModal(title,html){modalTitle.textContent=title;modalBody.innerHTML=html;modal.classList.add("open")}closeModal.addEventListener("click",()=>modal.classList.remove("open"));modal.addEventListener("click",e=>{if(e.target===modal)modal.classList.remove("open")});
+  el("helpBtn").addEventListener("click",()=>openModal("How to study",`<p>Start with a short passage. Listen several times, then press <span class="kbd">Veil</span> to blur the page.</p><p>Tap any ayah to play from there. In veil mode, tap one ayah to peek when you need a small reminder. The goal is active recall, not reading.</p>`));
+  el("progressBtn").addEventListener("click",()=>openModal("Progress",`<p>This prototype tracks the current session locally in the interface: ayat loaded, repeat count, and completion percentage.</p><p>A production version should save streaks, daily goals, and surah-level progress in localStorage or a backend account.</p>`));
+  init();
+})();
+</script>
+<script>
+/* PWA — register the service worker for offline revision + install */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
