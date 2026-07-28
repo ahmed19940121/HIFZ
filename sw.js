@@ -11,7 +11,7 @@
    responses stored here are real (non-opaque) and can be decoded straight from cache
    on a second listen — the second pass through a passage needs no network at all.
 */
-const VERSION   = "hifz-v3";
+const VERSION   = "hifz-v4";
 const SHELL     = "shell-" + VERSION;
 const RUNTIME   = "runtime-" + VERSION;
 
@@ -67,11 +67,27 @@ self.addEventListener("fetch", event => {
   const isRuntime = RUNTIME_HOSTS.some(h => url.hostname === h || url.hostname.endsWith("." + h));
 
   if (isShell) {
-    // cache-first for the app shell, fall back to network, then to cached index for navigations
+    // The document and its scripts are network-first: cache-first would pin an
+    // installed PWA to whatever HTML it first saw, and no later fix could ever
+    // reach it. Cache is the offline fallback, not the source of truth.
+    const isDoc = req.mode === "navigate" || /\.(html|js)$/i.test(url.pathname) || url.pathname.endsWith("/");
+    if (isDoc) {
+      event.respondWith(
+        fetch(req).then(res => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(SHELL).then(c => c.put(req, copy)).catch(() => {});
+          }
+          return res;
+        }).catch(() => caches.match(req).then(hit =>
+          hit || (req.mode === "navigate" ? caches.match("./index.html") : Response.error())
+        ))
+      );
+      return;
+    }
+    // icons, manifest and other immutable assets: cache-first is fine
     event.respondWith(
-      caches.match(req).then(hit => hit || fetch(req).catch(() =>
-        req.mode === "navigate" ? caches.match("./index.html") : Response.error()
-      ))
+      caches.match(req).then(hit => hit || fetch(req).catch(() => Response.error()))
     );
     return;
   }
@@ -85,9 +101,12 @@ self.addEventListener("fetch", event => {
                   url.hostname === "verses.quran.com";
 
   if (isAudio) {
-    // Range requests (what <audio> issues when seeking) must never be cached —
-    // storing a 206 and replaying it as a full response corrupts playback.
-    if (req.headers.has("range")) return;
+    // Media-element requests (mode 'no-cors', frequently ranged) are handed straight
+    // back to the browser. Proxying them through a service worker means answering a
+    // ranged request with a whole-file 200 and handing <audio> an opaque response —
+    // a reliable way to break seeking, and playback itself on some browsers. Only the
+    // gapless engine's own cors fetches, which are ordinary and safe to store, are cached.
+    if (req.mode !== "cors" || req.headers.has("range")) return;
 
     event.respondWith(
       fetch(req).then(res => {
