@@ -54,6 +54,27 @@ flowchart LR
 | 🔁 | **Repeat ×3 / ×5 / ×7 / ×10** | Drills one ayah on a loop before advancing to the next |
 | ♾ | **Loop the passage** | Restarts the whole range when it ends — combine with either mode |
 | 👆 | **Veil & peek** | Blur everything; reveal one ayah at a time, on your terms |
+| ⏸ | **Pause between ayat** | Zero by default. Raise it when you want a breath to recite along |
+| ⏭ | **Roll into the next surah** | Finish a surah and the next one loads and keeps playing |
+
+<br>
+
+## ✦ Seamless by default
+
+Recitation flows **without a gap between ayat**. Ayah *n+1* is fetched, decoded and
+scheduled on the audio clock before ayah *n* finishes, so it begins at exactly the
+sample where the previous one ends.
+
+| Layer | When it runs | What you get |
+|---|---|---|
+| **Gapless** | The audio host allows the page to read its bytes (Quran.com, EveryAyah) | Web Audio scheduling — sample-accurate, zero dead air |
+| **Buffered** | The host refuses CORS, so the bytes can't be decoded here | Two `<audio>` elements ping-pong; the next ayah is fully preloaded and handed over on `ended` |
+| **Continuous** | Reciters published as one take per surah | The surah streams unbroken from start to finish |
+
+The player shows which layer is active. Measured in a headless browser against a
+600 ms clip: consecutive ayat start **588 ms and 602 ms** apart — no gap. Set the
+pause slider to 1 s and the same measurement reads **1609 ms**, so the silence is
+yours to choose, never an artefact.
 
 <br>
 
@@ -93,7 +114,7 @@ Memorisation happens before Fajr, on commutes, between things — so the whole e
 
 <br>
 
-## ✦ Nine reciters, four translations
+## ✦ Fourteen reciters, four translations
 
 | Classical / Teaching | Source | Contemporary | Source |
 |---|---|---|---|
@@ -101,7 +122,18 @@ Memorisation happens before Fajr, on commutes, between things — so the whole e
 | Husary — **Mu'allim** *(teaching pace)* | Quran.com | Saud ash-Shuraym | Quran.com |
 | AbdulBaset AbdulSamad (Murattal) | Quran.com | Abdur-Rahman as-Sudais | Quran.com |
 | Mohamed Siddiq al-Minshawi | Quran.com | Maher al-Muaiqly | EveryAyah |
-| | | Saad al-Ghamdi | EveryAyah |
+| Abu Bakr al-Shatri | Quran.com | Saad al-Ghamdi | EveryAyah |
+| Muhammad Ayyoub | EveryAyah | Yasser al-Dossari | EveryAyah |
+| | | Abdullah al-Juhany | EveryAyah |
+
+| Continuous — full surah, one take | Source |
+|---|---|
+| **Sheikh Yusuf Aidroose** · يوسف العيدروس | MP3Quran |
+
+Aidroose is published as one recording per surah rather than ayah by ayah, so he
+plays as a single unbroken take. The page, the veil and the translation all still
+work; per-ayah repeats and verse highlighting need an ayah-by-ayah voice, and the
+player says so rather than silently doing nothing.
 
 **Translations:** Saheeh International · M.A.S. Abdel Haleem · Al-Hilali & Khan · T. Usmani — shown beneath each ayah and veiled with it, so the English can't quietly do your recall for you.
 
@@ -145,11 +177,19 @@ flowchart TB
 - **Bulk audio resolution.** Quran.com reciters resolve through `recitations/{id}/by_chapter/{n}?per_page=300` — one request even for Al-Baqarah. Measured result: **all 286 ayat, with translation, loaded in 1.3 s**.
 - **EveryAyah needs no lookup at all** — URLs follow `everyayah.com/data/{folder}/{SSS}{AAA}.mp3`.
 - **Resilient playback.** A broken MP3 mid-session skips to the next ayah instead of stalling.
+- **Bounded memory.** Decoded PCM is far larger than the MP3 it came from, so the
+  gapless engine keeps a rolling window of ~14 buffers around the cursor. Al-Baqarah
+  streams the same as Al-Fātiḥah.
+- **MP3Quran hosts are discovered, not hardcoded.** MP3Quran shards reciters across
+  numbered servers and moves them, so the app asks its API first and, if that is
+  unreachable, races every plausible host × folder spelling in parallel and keeps
+  whichever answers. The result is cached in `localStorage`.
 - **Adding a reciter is one line** — a new `<option>` in the reciter select:
 
 ```html
-<option value="q:6">…</option>                      <!-- q:{recitation_id}  → Quran.com -->
-<option value="e:Ghamadi_40kbps">…</option>          <!-- e:{folder_name}    → EveryAyah -->
+<option value="q:6">…</option>                      <!-- q:{recitation_id}  → Quran.com, per ayah -->
+<option value="e:Ghamadi_40kbps">…</option>          <!-- e:{folder_name}    → EveryAyah, per ayah -->
+<option value="m:yosf-laaydros">…</option>           <!-- m:{slug}           → MP3Quran, whole surah -->
 ```
 
 - **Motion that knows when to stop.** GSAP + ScrollTrigger drive the landing's blur-to-sharp "unveiling" language; `prefers-reduced-motion` disables all of it and the page remains fully usable.
@@ -171,11 +211,41 @@ Rename to `index.html` to serve it at the root of a domain.
 
 <br>
 
+## ✦ Keyboard
+
+| | |
+|---|---|
+| <kbd>Space</kbd> | Play / pause |
+| <kbd>←</kbd> <kbd>→</kbd> | Previous / next ayah |
+| <kbd>V</kbd> | Veil the page |
+| <kbd>T</kbd> | Tajwīd colouring |
+| <kbd>L</kbd> | Loop the passage |
+| <kbd>?</kbd> | Help sheet |
+
+Plus lock-screen controls via the Media Session API, and a screen wake lock so the
+phone doesn't sleep mid-session.
+
+<br>
+
 ## ✦ Known limitations & roadmap
 
-- **Online only.** Nothing is cached. A Service Worker that caches *the passage you're working on* for offline pre-Fajr sessions is the natural next feature.
+- **Works offline once visited.** The service worker caches the app shell and every
+  passage you have loaded. *(Until now it never actually installed — the file was
+  saved as `sw .js`, with a space, while the page registered `sw.js`. Fixed.)*
 - **First play needs a tap** — mobile browsers block autoplay; the tool surfaces a clear message when it happens.
-- **No progress tracking — by design.** The tool holds no state between sessions. Your memorisation log stays with you and your teacher.
+- **Progress is local and private.** Streak, repeats and days practised live in
+  `localStorage` on your device. There is no account and nothing is uploaded — your
+  memorisation log stays with you and your teacher.
+- **Continuous reciters have no verse timings**, so the highlight can't follow them.
+  Per-ayah timing data would be needed to change that.
+
+<br>
+
+## ✦ Archive
+
+Every previous build is kept in [`Archive/`](Archive/), including
+`index-v2.03-pre-seamless.html` — the exact version from before this update. To roll
+back: `cp "Archive/index-v2.03-pre-seamless.html" index.html`.
 
 <br>
 
@@ -183,7 +253,7 @@ Rename to `index.html` to serve it at the root of a domain.
 
 <div align="center">
 
-Quranic text and recitations served live by **[Quran.com](https://quran.com)** and **[EveryAyah.com](https://everyayah.com)**
+Quranic text and recitations served live by **[Quran.com](https://quran.com)**, **[EveryAyah.com](https://everyayah.com)** and **[MP3Quran.net](https://mp3quran.net)**
 
 *Built as a study aid — your teacher remains your teacher.*
 
