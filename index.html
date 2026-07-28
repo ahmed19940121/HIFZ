@@ -383,6 +383,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
       <input type="range" id="gap" min="0" max="4000" step="250" value="0">
     </div>
     <select class="small-select" id="speed" aria-label="Playback speed"><option value="0.75">0.75× — slow drill</option><option value="0.9">0.9×</option><option value="1" selected>1× — normal</option><option value="1.1">1.1×</option><option value="1.25">1.25×</option></select>
+    <select class="small-select" id="enginePref" aria-label="Audio engine"><option value="auto" selected>Audio engine: automatic</option><option value="gapless">Gapless — truly seamless</option><option value="compatible">Compatible — if you hear nothing</option></select>
     <div class="extra-row">
       <label class="mini-toggle"><input type="checkbox" id="loop" checked> Loop passage</label>
       <button class="btn btn-ghost" id="hideBtn">Veil</button>
@@ -534,6 +535,18 @@ let engine = "buffered";    // "gapless" | "buffered" | "continuous"
 let rate = 1, gapMs = 0;
 let surahUrl = null;
 let loadToken = 0;          // guards against a slow load overwriting a newer one
+let enginePref = "auto";    // auto | gapless | compatible
+
+/* iOS and iPadOS route Web Audio through the *ambient* channel, which the physical
+   ringer switch silences — a page can look like it is playing, with the clock
+   running and verses highlighting, and produce no sound at all. <audio> elements
+   play on the media channel and ignore that switch. So on Apple touch devices the
+   element engine is the default, and the user can still force either one. */
+function isAppleTouch(){
+  const ua = navigator.userAgent || "";
+  if(/iPad|iPhone|iPod/.test(ua)) return true;
+  return /Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1;   // iPadOS reports as Mac
+}
 
 /* ══════════════════════════════════════════════════════════════════
    Daily practice log — a real streak, not a placeholder
@@ -833,13 +846,14 @@ function startPlayback(){
 function afterStart(){
   requestWakeLock();
   updateMediaSession();
+  armWatchdog();
   if(!rafId) rafId = requestAnimationFrame(tick);
 }
 
 function pausePlayback(){
   pausedOffset = currentOffset();
   playing = false; setPlayIcon();
-  clearTimeout(gapTimer);
+  clearTimeout(gapTimer); clearTimeout(watchdog);
   stopScheduled();
   audioA.pause(); audioB.pause();
   releaseWakeLock();
@@ -849,7 +863,7 @@ function pausePlayback(){
 
 function stopPlayback(){
   playing = false; setPlayIcon();
-  clearTimeout(gapTimer);
+  clearTimeout(gapTimer); clearTimeout(watchdog);
   stopScheduled();
   audioA.pause(); audioB.pause();
   pumpCursor = null;
@@ -1302,13 +1316,41 @@ async function loadPassage(opts){
 async function pickEngine(){
   engine = "buffered";
   const first = passage.find(v => v.audioUrl);
-  if(!first || !audioCtx()){ setEngineBadge(); return }
+  if(!first){ setEngineBadge(); return }
+  if(enginePref === "compatible"){ setEngineBadge(); return }
+  if(enginePref === "auto" && isAppleTouch()){ setEngineBadge(); return }
+  if(!audioCtx()){ setEngineBadge(); return }
   const buf = await getBuffer(first.audioUrl);
   engine = buf ? "gapless" : "buffered";
   if(engine === "gapless"){
     for(let k = 1; k <= 2; k++) if(passage[k]) getBuffer(passage[k].audioUrl);
   }
   setEngineBadge();
+}
+
+/* Last line of defence against silence: if the audio clock has not moved shortly
+   after pressing play, the Web Audio path is not actually producing sound
+   (suspended, interrupted, or routed somewhere inaudible). Drop to elements. */
+let watchdog = 0;
+function armWatchdog(){
+  clearTimeout(watchdog);
+  if(engine !== "gapless" || !ctx) return;
+  const t0 = ctx.currentTime;
+  watchdog = setTimeout(() => {
+    if(!playing || engine !== "gapless" || !ctx) return;
+    if(ctx.state !== "running" || ctx.currentTime - t0 < 0.05){
+      fallbackToElements("Gapless playback could not start on this device — switched to the compatible player.");
+    }
+  }, 1500);
+}
+
+function fallbackToElements(msg){
+  stopScheduled();
+  pumpCursor = null;
+  engine = "buffered";
+  setEngineBadge();
+  if(msg) toast(msg);
+  if(playing) startBuffered({ i: idx, rep: repsDone }, 0);
 }
 
 function setEngineBadge(){
@@ -1323,7 +1365,7 @@ function setEngineBadge(){
   engineBadge.textContent = label;
   engineBadge.title = {
     gapless:    "Every ayah is decoded and scheduled ahead of time — no gap between verses.",
-    buffered:   "This audio host will not let the page decode its files, so ayat are pre-buffered and handed over instantly instead.",
+    buffered:   "The next ayah is fully pre-buffered and handed over the instant the current one ends. Used on iPhone and iPad, where the ringer switch silences the gapless engine, and wherever the audio host will not let the page decode its files.",
     continuous: "This reciter publishes one take per surah — it streams unbroken from start to finish."
   }[kind];
 }
@@ -1333,6 +1375,7 @@ function applyModeUI(){
   repsSel.disabled = cont;
   gapIn.disabled = cont;
   autoNextChk.disabled = cont;
+  el("enginePref").disabled = cont;
   prevBtn.setAttribute("aria-label", cont ? "Back 15 seconds" : "Previous ayah");
   nextBtn.setAttribute("aria-label", cont ? "Forward 15 seconds" : "Next ayah");
   playerNote.hidden = !cont;
@@ -1440,6 +1483,16 @@ speedSel.addEventListener("change", () => {
   audioA.playbackRate = audioB.playbackRate = rate;
   reschedule();
 });
+el("enginePref").addEventListener("change", async e => {
+  enginePref = e.target.value;
+  store.set("enginePref", enginePref);
+  if(mode !== "ayah" || !passage.length) return;
+  const wasPlaying = playing;
+  stopPlayback();
+  bufCache.clear();
+  await pickEngine();
+  if(wasPlaying) startPlayback();
+});
 reciterSel.addEventListener("change", () => {
   store.set("reciter", reciterSel.value);
   if(passage.length) loadPassage();
@@ -1509,7 +1562,8 @@ modal.addEventListener("click", e => { if(e.target === modal) modal.classList.re
 function openHelp(){
   openModal("How to study", `
     <p>Start with a short passage. Listen several times, then press <span class="kbd">Veil</span> to blur the page. Tap any ayah to play from there; in veil mode, tap one ayah to peek when you need a small reminder. The goal is active recall, not reading.</p>
-    <p><b style="color:var(--text)">Playback is gapless.</b> Each ayah is decoded and scheduled before the one before it ends, so the passage flows without a pause. If you <i>want</i> a breath between ayat to recite along, open the player and raise <b style="color:var(--gold-2)">Pause between ayat</b>.</p>
+    <p><b style="color:var(--text)">Playback is seamless.</b> The next ayah is always ready before the current one ends, so the passage flows without a pause. If you <i>want</i> a breath between ayat to recite along, open the player and raise <b style="color:var(--gold-2)">Pause between ayat</b>.</p>
+    <p><b style="color:var(--text)">Hearing nothing?</b> On iPhone and iPad, check the ringer switch on the side of the device — when it is set to silent it mutes some kinds of web audio. The app already picks the player that ignores that switch, but if you are ever met with silence, open the player and set <b style="color:var(--gold-2)">Audio engine</b> to <b style="color:var(--gold-2)">Compatible</b>.</p>
     <div class="shortcut-list">
       <div><span>Play / pause</span> <span class="kbd">Space</span></div>
       <div><span>Next / previous ayah</span> <span><span class="kbd">←</span> <span class="kbd">→</span></span></div>
@@ -1546,6 +1600,8 @@ function restorePrefs(){
   if(rp !== null && Array.from(repsSel.options).some(o => o.value === rp)) repsSel.value = rp;
   const sp = store.get("speed", null);
   if(sp !== null && Array.from(speedSel.options).some(o => o.value === sp)) speedSel.value = sp;
+  enginePref = store.get("enginePref", "auto");
+  el("enginePref").value = enginePref;
   rate = +speedSel.value;
   gapMs = +store.get("gap", 0) || 0;
   gapIn.value = gapMs;

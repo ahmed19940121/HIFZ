@@ -67,9 +67,16 @@ sample where the previous one ends.
 
 | Layer | When it runs | What you get |
 |---|---|---|
-| **Gapless** | The audio host allows the page to read its bytes (Quran.com, EveryAyah) | Web Audio scheduling — sample-accurate, zero dead air |
-| **Buffered** | The host refuses CORS, so the bytes can't be decoded here | Two `<audio>` elements ping-pong; the next ayah is fully preloaded and handed over on `ended` |
+| **Gapless** | Desktop and Android, where the host lets the page read its bytes | Web Audio scheduling — sample-accurate, zero dead air |
+| **Buffered** | **iPhone and iPad**, and anywhere the host refuses CORS | Two `<audio>` elements ping-pong; the next ayah is fully preloaded and handed over on `ended` |
 | **Continuous** | Reciters published as one take per surah | The surah streams unbroken from start to finish |
+
+> **Why iOS gets the element engine.** iOS routes Web Audio through the *ambient*
+> channel, which the physical ringer switch silences — the page looks like it is
+> playing, clock running and verses highlighting, and makes no sound. `<audio>`
+> elements play on the media channel and ignore that switch. A watchdog also
+> catches any other cause of a dead audio clock and drops to elements
+> automatically, and **Audio engine** in the player lets you force either one.
 
 The player shows which layer is active. Measured in a headless browser against a
 600 ms clip: consecutive ayat start **588 ms and 602 ms** apart — no gap. Set the
