@@ -55,7 +55,9 @@ flowchart LR
 | ♾ | **Loop the passage** | Restarts the whole range when it ends — combine with either mode |
 | 👆 | **Veil & peek** | Blur everything; reveal one ayah at a time, on your terms |
 | ⏸ | **Pause between ayat** | Zero by default. Raise it when you want a breath to recite along |
-| ⏭ | **Roll into the next surah** | Finish a surah and the next one loads and keeps playing |
+| ⏭ | **Roll into the next surah** | Finish a surah and the next one loads and keeps playing, all the way to an-Nas |
+
+*Looping the passage and rolling onward are opposite intentions, so ticking one unticks the other.*
 
 <br>
 
@@ -240,9 +242,9 @@ phone doesn't sleep mid-session.
   passage you have loaded. *(Until now it never actually installed — the file was
   saved as `sw .js`, with a space, while the page registered `sw.js`. Fixed.)*
 - **First play needs a tap** — mobile browsers block autoplay; the tool surfaces a clear message when it happens.
-- **Progress is local and private.** Streak, repeats and days practised live in
-  `localStorage` on your device. There is no account and nothing is uploaded — your
-  memorisation log stays with you and your teacher.
+- **Progress is local and private.** Streak, coverage, listening time and days
+  practised live in `localStorage` on your device. There is no account and nothing
+  is uploaded — your memorisation log stays with you and your teacher.
 - **Continuous reciters have no verse timings**, so the highlight can't follow them.
   Per-ayah timing data would be needed to change that.
 
