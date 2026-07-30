@@ -1025,8 +1025,46 @@ function currentOffset(){
    Engine B — buffered ping-pong (two <audio> elements)
    ══════════════════════════════════════════════════════════════════ */
 let elCur = audioA, elNext = audioB, gapTimer = 0;
+let blessedEl = null;      // an element iOS has seen start inside a real tap
+let swapRefused = false;   // set once a handover is refused, then we use one element
 
-function swapElements(){ const t = elCur; elCur = elNext; elNext = t }
+/* iOS grants playback permission per ELEMENT, not per page: a media element that
+   has never been started inside a user gesture can never be started from script.
+   The handover to the second element happens on `ended`, which is not a gesture,
+   so in a Safari or Chrome tab the passage plays its first ayah and stops dead.
+   (Home Screen web apps get relaxed media rules, which is why it worked there.)
+   Both elements are therefore started — silent, for an instant — inside the very
+   first tap the page receives, long before Play is pressed. */
+const SILENT_WAV = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA";
+let audioUnlocked = false;
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  [audioA, audioB].forEach(a => {
+    try{
+      if(a.getAttribute("src")) return;              /* already carrying real audio */
+      a.muted = true;
+      a.setAttribute("src", SILENT_WAV);
+      /* only undo this if the element is still holding the silent clip — real
+         playback may have started in the meantime and must not be paused */
+      const done = () => {
+        try{
+          if(a.getAttribute("src") === SILENT_WAV){ a.pause(); a.removeAttribute("src") }
+          a.muted = false;
+        }catch(e){}
+      };
+      const p = a.play();
+      if(p && p.then) p.then(done, done); else done();
+    }catch(e){ a.muted = false }
+  });
+}
+addEventListener("pointerdown", unlockAudio, { once:true, capture:true });
+addEventListener("keydown", unlockAudio, { once:true, capture:true });
+
+function swapElements(){
+  if(swapRefused) return;                            /* one element only, from here on */
+  const t = elCur; elCur = elNext; elNext = t;
+}
 
 function preloadNext(step){
   const nx = nextStep(step);
@@ -1047,8 +1085,18 @@ function startBuffered(step, offset){
   elCur.playbackRate = rate;
   try{ elCur.currentTime = offset || 0 }catch(e){}
   elNext.pause();
-  elCur.play().catch(() => {
-    if(playing) showErr("Audio could not start. Tap Play once — mobile browsers need a tap before they will make sound.");
+  elCur.play().then(() => { blessedEl = elCur }).catch(() => {
+    if(!playing) return;
+    /* Refused. If this is the element we handed over TO, the tap never reached it —
+       go back to the one that did play and stay there, rather than stopping. */
+    if(!swapRefused && blessedEl && elCur !== blessedEl){
+      swapRefused = true;
+      elNext = elCur;
+      elCur = blessedEl;
+      startBuffered(step, offset || 0);
+      return;
+    }
+    showErr("Audio could not start. Tap Play once — mobile browsers need a tap before they will make sound.");
     pausePlayback();
   });
   preloadNext(step);
@@ -1582,6 +1630,7 @@ async function loadPassage(opts){
   loadBtn.disabled = true;
   /* start every load from a known transport state */
   elCur = audioA; elNext = audioB;
+  swapRefused = false; blessedEl = null;
   audioA.loop = false;
   audioA.removeAttribute("src"); audioB.removeAttribute("src");
   lastVerse = -1; pausedOffset = 0;
@@ -2287,7 +2336,22 @@ init();
 /* PWA — register the service worker for offline revision + install */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    // updateViaCache:"none" — a worker cached by HTTP can pin an old, broken build
+    // for a day. Without it a bad service worker outlives the fix for it.
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+      .then(reg => { try { reg.update() } catch (e) {} })
+      .catch(() => {});
+  });
+  // when a newer worker takes over, reload once so the page it controls matches it
+  let swReloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (swReloaded) return;
+    swReloaded = true;
+    try {
+      if (sessionStorage.getItem("hifz:swreload")) return;   // never loop
+      sessionStorage.setItem("hifz:swreload", "1");
+    } catch (e) { return; }
+    location.reload();
   });
 }
 </script>
