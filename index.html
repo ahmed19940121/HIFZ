@@ -233,20 +233,14 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
   background:rgba(20,20,20,.97);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
   opacity:0;transform:translateY(10px);transition:.28s var(--ease)}
 .ts-panel.on{opacity:1;transform:none}
-.ts-panel-head{display:flex;align-items:center;gap:6px;padding:18px 18px 10px;flex-shrink:0}
+.ts-panel-head{display:flex;align-items:flex-start;gap:10px;padding:18px 18px 12px;flex-shrink:0}
 .ts-panel-head h4{font-family:'Fraunces',serif;font-weight:400;font-size:1.12rem;color:var(--text)}
-.ts-back{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;line-height:1;
+.ts-back{width:36px;height:36px;flex-shrink:0;margin-top:-2px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;line-height:1;
   color:var(--gold-2);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10)}
 .ts-back:hover{background:rgba(255,255,255,.14)}
-.ts-search-wrap{padding:0 18px 12px;flex-shrink:0}
-#tsSearch{width:100%;min-height:42px;padding:0 14px;border-radius:14px;border:1px solid rgba(255,255,255,.13);
-  background:rgba(255,255,255,.07);color:var(--text);outline:0}
-#tsSearch:focus{border-color:rgba(212,175,55,.6);box-shadow:0 0 0 4px rgba(212,175,55,.10)}
+.ts-panel-note{font-size:.76rem;color:var(--muted);line-height:1.5;margin-top:3px}
 .ts-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px calc(18px + var(--safe-bottom));
   overscroll-behavior:contain}
-.ts-group{position:sticky;top:0;z-index:1;padding:10px 6px 6px;font-size:.62rem;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--gold);font-weight:800;
-  background:linear-gradient(180deg,rgba(20,20,20,.99),rgba(20,20,20,.86))}
 .ts-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:16px;
   text-align:start;transition:.16s var(--ease)}
 .ts-row:hover{background:rgba(255,255,255,.08)}
@@ -583,11 +577,8 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
   <div class="ts-panel" id="tsPanel" hidden>
     <header class="ts-panel-head">
       <button class="ts-back" id="tsPanelBack" aria-label="Back to the commentary">‹</button>
-      <h4>Choose a tafsīr</h4>
+      <div><h4>Choose a tafsīr</h4><p class="ts-panel-note">Three English works. Each is its author’s own text, shown unaltered.</p></div>
     </header>
-    <div class="ts-search-wrap">
-      <input id="tsSearch" type="search" placeholder="Search by work or author" aria-label="Search tafsīrs" autocomplete="off">
-    </div>
     <div class="ts-list" id="tsList" role="listbox" aria-label="Available tafsīrs"></div>
   </div>
 </section>
@@ -1764,14 +1755,16 @@ function applyModeUI(){
    rendered as returned, so a narration is only ever shown in the context
    its own author gave it. Remote HTML is sanitised before it is inserted.
    ══════════════════════════════════════════════════════════════════ */
-/* Every tafsīr Quran.com publishes is offered. Ibn Kathīr is simply the default,
-   because it is the one that carries the narrations. The list is fetched, never
-   hardcoded, so new works appear on their own. */
-const TAFSIR_FALLBACK = [                       /* only if the list endpoint is unreachable */
-  { id:169, name:"Tafsir Ibn Kathir", author_name:"Hafiz Ibn Kathir", language_name:"english" },
-  { id:14,  name:"تفسير ابن كثير",     author_name:"ابن كثير",         language_name:"arabic"  }
+/* A deliberately short shelf, chosen by the person this app is for, in this order.
+   Quran.com publishes many more; showing only these is an editorial decision about
+   which works to study from, not a technical limit. Matching is by name against the
+   live catalogue, so an id changing upstream cannot silently swap one work for
+   another; the ids below are used only if the catalogue itself is unreachable. */
+const TAFSIR_SHELF = [
+  { match:/ibn\s*kath/i,            fallback:{ id:169, name:"Tafsir Ibn Kathir", author_name:"Hafiz Ibn Kathir",          language_name:"english" } },
+  { match:/ma[a'ʿ]?arif[\s-]*ul/i,  fallback:{ id:168, name:"Maarif-ul-Quran",   author_name:"Mufti Muhammad Shafi",       language_name:"english" } },
+  { match:/tazkir/i,                fallback:{ id:817, name:"Tazkirul Quran",    author_name:"Maulana Wahid Uddin Khan",   language_name:"english" } }
 ];
-const IBN_KATHIR = /ibn\s*kath|ابن\s*كثير/i;
 const RTL_LANGS = /arabic|urdu|persian|farsi|kurdish|pashto|sindhi|uighur|uyghur|hebrew|divehi/i;
 
 const tafsirCache = new Map();     // "id:verseKey" -> html
@@ -1834,26 +1827,22 @@ const tafsirLangOf = t => String(t.language_name || "other").toLowerCase();
 
 async function loadTafsirList(){
   if(tafsirList) return tafsirList;
-  let list = null;
+  let catalogue = null;
   try{
     const d = await fetch(API + "/resources/tafsirs").then(r => r.json());
-    if(d && Array.isArray(d.tafsirs) && d.tafsirs.length) list = d.tafsirs;
+    if(d && Array.isArray(d.tafsirs) && d.tafsirs.length) catalogue = d.tafsirs;
   }catch(e){}
-  tafsirList = (list || TAFSIR_FALLBACK).filter(t => t && t.id);
 
-  /* English first, Arabic next, everything else alphabetically — then by name */
-  const rank = l => l === "english" ? 0 : l === "arabic" ? 1 : 2;
-  tafsirList.sort((a, b) => {
-    const la = tafsirLangOf(a), lb = tafsirLangOf(b);
-    return rank(la) - rank(lb) || la.localeCompare(lb) || tafsirName(a).localeCompare(tafsirName(b));
-  });
+  /* keep the shelf's own order — it is the order they were asked for */
+  tafsirList = TAFSIR_SHELF.map(want => {
+    const hit = (catalogue || []).find(t => t && t.id &&
+      tafsirLangOf(t) === "english" &&
+      want.match.test(tafsirName(t) + " " + (t.name || "") + " " + (t.author_name || "")));
+    return hit || want.fallback;
+  }).filter(Boolean);
 
   const savedId = store.get("tafsirId", null);
-  tafsirCur = tafsirList.find(t => t.id === savedId)
-           || tafsirList.find(t => tafsirLangOf(t) === "english" && IBN_KATHIR.test(tafsirName(t) + " " + (t.author_name || "")))
-           || tafsirList.find(t => IBN_KATHIR.test(tafsirName(t) + " " + (t.author_name || "")))
-           || tafsirList.find(t => tafsirLangOf(t) === "english")
-           || tafsirList[0];
+  tafsirCur = tafsirList.find(t => t.id === savedId) || tafsirList[0];
   return tafsirList;
 }
 
@@ -1925,24 +1914,16 @@ async function loadTafsirBody(){
   el("tsScroll").scrollTop = 0;
 }
 
-/* ── the picker: every published tafsīr, grouped by language, searchable ── */
-function renderTafsirList(filter){
-  const q = String(filter || "").trim().toLowerCase();
-  const rows = (tafsirList || []).filter(t => !q ||
-    (tafsirName(t) + " " + (t.author_name || "") + " " + tafsirLangOf(t)).toLowerCase().includes(q));
+/* ── the picker: a short, named shelf, so no search or grouping is warranted ── */
+function renderTafsirList(){
   const list = el("tsList");
-  if(!rows.length){ list.innerHTML = '<p class="cov-empty">Nothing matches that.</p>'; return }
-  let html = "", lang = null;
-  rows.forEach(t => {
-    const l = tafsirLangOf(t);
-    if(l !== lang){ lang = l; html += '<h5 class="ts-group">' + cap(l) + "</h5>" }
+  list.innerHTML = (tafsirList || []).map(t => {
     const on = tafsirCur && t.id === tafsirCur.id;
-    html += '<button class="ts-row' + (on ? " on" : "") + '" data-id="' + t.id + '"' +
+    return '<button class="ts-row' + (on ? " on" : "") + '" data-id="' + t.id + '"' +
       (on ? ' aria-current="true"' : "") + '><span class="ts-row-t"><b>' + esc(tafsirName(t)) + "</b>" +
       (t.author_name ? "<span>" + esc(t.author_name) + "</span>" : "") +
       '</span><span class="ts-tick" aria-hidden="true">✓</span></button>';
-  });
-  list.innerHTML = html;
+  }).join("");
 }
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, ch =>
   ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
@@ -1955,10 +1936,10 @@ function showTafsirPanel(on){
   const panel = el("tsPanel");
   tsPanelOpen = !!on;
   if(on){
-    renderTafsirList(el("tsSearch").value = "");
+    renderTafsirList();
     panel.hidden = false;
     requestAnimationFrame(() => panel.classList.add("on"));
-    setTimeout(() => el("tsSearch").focus(), 80);
+    setTimeout(() => { const f = el("tsList").querySelector(".ts-row.on") || el("tsList").firstElementChild; f && f.focus() }, 80);
   }else{
     panel.classList.remove("on");
     setTimeout(() => { if(!tsPanelOpen) panel.hidden = true }, 320);
@@ -1967,7 +1948,6 @@ function showTafsirPanel(on){
 
 el("tsPick").addEventListener("click", () => showTafsirPanel(true));
 el("tsPanelBack").addEventListener("click", () => showTafsirPanel(false));
-el("tsSearch").addEventListener("input", e => renderTafsirList(e.target.value));
 el("tsList").addEventListener("click", e => {
   const row = e.target.closest(".ts-row");
   if(!row) return;
