@@ -528,7 +528,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
       <input type="range" id="gap" min="0" max="4000" step="250" value="0">
     </div>
     <select class="small-select" id="speed" aria-label="Playback speed"><option value="0.75">0.75× — slow drill</option><option value="0.9">0.9×</option><option value="1" selected>1× — normal</option><option value="1.1">1.1×</option><option value="1.25">1.25×</option></select>
-    <select class="small-select" id="enginePref" aria-label="Audio engine"><option value="auto" selected>Audio engine: automatic</option><option value="gapless">Gapless — truly seamless</option><option value="compatible">Compatible — if you hear nothing</option></select>
+    <select class="small-select" id="enginePref" aria-label="Audio engine"><option value="auto" selected>Audio: standard — works everywhere</option><option value="gapless">Audio: sample-accurate — may be silent on iPhone</option></select>
     <div class="extra-row">
       <label class="mini-toggle"><input type="checkbox" id="loop" checked> Loop passage</label>
       <button class="btn btn-ghost" id="hideBtn">Veil</button>
@@ -738,15 +738,16 @@ let loadToken = 0;          // guards against a slow load overwriting a newer on
 let enginePref = "auto";    // auto | gapless | compatible
 let dailyGoal = 20;         // ayat per day the ring fills towards
 
-/* iOS and iPadOS route Web Audio through the *ambient* channel, which the physical
-   ringer switch silences — a page can look like it is playing, with the clock
-   running and verses highlighting, and produce no sound at all. <audio> elements
-   play on the media channel and ignore that switch. So on Apple touch devices the
-   element engine is the default, and the user can still force either one. */
-function isAppleTouch(){
-  const ua = navigator.userAgent || "";
-  if(/iPad|iPhone|iPod/.test(ua)) return true;
-  return /Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1;   // iPadOS reports as Mac
+/* Web Audio is no longer the default anywhere, and the reason is measurement
+   rather than taste. The element engine's handover — next ayah fully preloaded,
+   swapped on `ended` — measures 15-22ms. A syllable of recitation is several
+   times that, so the gap is inaudible. Web Audio buys the remaining ~20ms of
+   sample accuracy, and charges for it in silent failures: it is muted outright by
+   the iOS ringer switch, and can report a running clock while producing nothing.
+   Silence the app cannot even detect is a terrible price for 20ms nobody hears.
+   It stays available for anyone who wants it, as a deliberate choice. */
+function wantsWebAudio(){
+  return enginePref === "gapless" && !store.get("gaplessFailed", false);
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1057,6 +1058,12 @@ function unlockAudio(){
       if(p && p.then) p.then(done, done); else done();
     }catch(e){ a.muted = false }
   });
+  /* if Web Audio is the chosen engine, bring its clock up inside this same tap —
+     a context resumed outside a gesture is where the running-but-silent case lives */
+  if(wantsWebAudio()){
+    const c = audioCtx();
+    if(c && c.state === "suspended") c.resume().catch(() => {});
+  }
 }
 addEventListener("pointerdown", unlockAudio, { once:true, capture:true });
 addEventListener("keydown", unlockAudio, { once:true, capture:true });
@@ -1728,8 +1735,7 @@ async function pickEngine(){
   engine = "buffered";
   const first = passage.find(v => v.audioUrl);
   if(!first){ setEngineBadge(); return }
-  if(enginePref === "compatible"){ setEngineBadge(); return }
-  if(enginePref === "auto" && isAppleTouch()){ setEngineBadge(); return }
+  if(!wantsWebAudio()){ setEngineBadge(); return }
   if(!audioCtx()){ setEngineBadge(); return }
   const buf = await getBuffer(first.audioUrl);
   engine = buf ? "gapless" : "buffered";
@@ -1753,10 +1759,11 @@ function armWatchdog(){
     if(ctx.state !== "running" || ctx.currentTime - t0 < 0.05){
       fallbackToElements("Gapless playback could not start on this device — switched to the compatible player.");
     }
-  }, 1500);
+  }, 900);
 }
 
 function fallbackToElements(msg){
+  store.set("gaplessFailed", true);   /* do not put the user through this again */
   stopScheduled();
   pumpCursor = null;
   engine = "buffered";
@@ -1768,7 +1775,7 @@ function fallbackToElements(msg){
 function setEngineBadge(){
   const map = {
     gapless:    ["gapless",    "Gapless"],
-    buffered:   ["buffered",   "Buffered"],
+    buffered:   ["buffered",   "Seamless"],
     continuous: ["continuous", "Continuous"]
   };
   const [kind, label] = map[engine] || map.buffered;
@@ -1776,8 +1783,8 @@ function setEngineBadge(){
   engineBadge.dataset.kind = kind;
   engineBadge.textContent = label;
   engineBadge.title = {
-    gapless:    "Every ayah is decoded and scheduled ahead of time — no gap between verses.",
-    buffered:   "The next ayah is fully pre-buffered and handed over the instant the current one ends. Used on iPhone and iPad, where the ringer switch silences the gapless engine, and wherever the audio host will not let the page decode its files.",
+    gapless:    "Web Audio: every ayah is decoded and scheduled on the audio clock, accurate to the sample. Chosen deliberately, in the player.",
+    buffered:   "The next ayah is fully preloaded and handed over the instant the current one ends — measured at 15-22ms, well below what the ear can catch. The default, because it works on every device and browser.",
     continuous: "This reciter publishes one take per surah — it streams unbroken from start to finish."
   }[kind];
 }
@@ -2138,6 +2145,7 @@ speedSel.addEventListener("change", () => {
 el("enginePref").addEventListener("change", async e => {
   enginePref = e.target.value;
   store.set("enginePref", enginePref);
+  if(enginePref === "gapless") store.set("gaplessFailed", false);
   if(mode !== "ayah" || !passage.length) return;
   const wasPlaying = playing;
   stopPlayback();
@@ -2218,7 +2226,7 @@ function openHelp(){
   openModal("How to study", `
     <p>Start with a short passage. Listen several times, then press <span class="kbd">Veil</span> to blur the page. Tap any ayah to play from there; in veil mode, tap one ayah to peek when you need a small reminder. The goal is active recall, not reading.</p>
     <p><b style="color:var(--text)">Playback is seamless.</b> The next ayah is always ready before the current one ends, so the passage flows without a pause. If you <i>want</i> a breath between ayat to recite along, open the player and raise <b style="color:var(--gold-2)">Pause between ayat</b>.</p>
-    <p><b style="color:var(--text)">Hearing nothing?</b> On iPhone and iPad, check the ringer switch on the side of the device — when it is set to silent it mutes some kinds of web audio. The app already picks the player that ignores that switch, but if you are ever met with silence, open the player and set <b style="color:var(--gold-2)">Audio engine</b> to <b style="color:var(--gold-2)">Compatible</b>.</p>
+    <p><b style="color:var(--text)">Hearing nothing?</b> You should not — the standard player works on every device and is what the app uses unless you change it. If you ever switched the audio setting to <i>sample-accurate</i>, put it back to <b style="color:var(--gold-2)">standard</b>: that mode uses Web Audio, which the ringer switch on an iPhone silences outright.</p>
     <p><b style="color:var(--text)">Want the commentary?</b> Every ayah carries a small book mark — tap it, long-press the ayah, or press <span class="kbd">T</span> while it is focused, to open Ibn Kathīr's tafsīr and the narrations he cites for that verse. It is their text, fetched as published, not a summary written here \u2014 and you can switch to any other tafsīr Quran.com carries.</p>
     <div class="shortcut-list">
       <div><span>Play / pause</span> <span class="kbd">Space</span></div>
@@ -2316,6 +2324,7 @@ function restorePrefs(){
   const sp = store.get("speed", null);
   if(sp !== null && Array.from(speedSel.options).some(o => o.value === sp)) speedSel.value = sp;
   enginePref = store.get("enginePref", "auto");
+  if(enginePref === "compatible") enginePref = "auto";      /* renamed; same engine */
   el("enginePref").value = enginePref;
   dailyGoal = +store.get("goal", 20) || 20;
   rate = +speedSel.value;
