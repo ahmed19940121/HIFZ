@@ -47,6 +47,9 @@
   --spring:cubic-bezier(.34,1.4,.5,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
+/* a display rule on a component silently beats the hidden attribute, leaving an
+   invisible element still eating clicks — make hidden mean hidden, everywhere */
+[hidden]{display:none!important}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{
   min-height:100svh;
@@ -60,7 +63,7 @@ body{
 }
 button,input,select{font:inherit}
 input[type=checkbox]{accent-color:var(--gold);width:17px;height:17px;cursor:pointer}
-button{border:0;cursor:pointer;color:inherit}
+button{border:0;cursor:pointer;color:inherit;background:transparent}
 a{color:inherit;text-decoration:none}
 ::selection{background:var(--gold);color:#15120a}
 :focus{outline:none}
@@ -176,6 +179,108 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
 .home-cov .cov-lead span:last-child{color:var(--gold-2);font-weight:700}
 .home-cov .cov-total{margin-bottom:0;height:5px}
 #fullProgressBtn{width:100%;min-height:42px;font-size:.86rem}
+/* ===== tafsīr sheet — Ibn Kathīr, with the narrations he cites ===== */
+/* Always present and always tappable — a hover-gated control is invisible on
+   touch and swallows the first click on a pointer device. Subtle until wanted. */
+.verse-tafsir{position:absolute;inset-inline-end:6px;top:8px;z-index:2;width:34px;height:34px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(156,128,59,.10);color:#9c803b;border:1px solid rgba(156,128,59,.22);
+  opacity:.4;transition:.2s var(--ease)}
+.verse:hover .verse-tafsir,.verse:focus-within .verse-tafsir,.verse-tafsir:hover{opacity:1}
+.verse-tafsir:hover{background:rgba(156,128,59,.22);color:#6d5a24}
+.verse-tafsir:active{transform:scale(.9)}
+.verse-tafsir svg{width:17px;height:17px;display:block}
+.page.veiled .verse-tafsir{display:none}
+
+.ts-scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:130;opacity:0;transition:opacity .35s var(--ease);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.ts-scrim.on{opacity:1}
+.tafsir-sheet{position:fixed;z-index:131;left:50%;bottom:0;width:min(680px,100%);max-height:92svh;
+  transform:translate(-50%,100%);transition:transform .42s cubic-bezier(.32,.86,.36,1);
+  background:rgba(22,22,22,.92);backdrop-filter:blur(40px) saturate(1.6);-webkit-backdrop-filter:blur(40px) saturate(1.6);
+  border:1px solid rgba(255,255,255,.16);border-bottom:0;border-radius:34px 34px 0 0;
+  box-shadow:0 -20px 90px rgba(0,0,0,.7);display:flex;flex-direction:column;overscroll-behavior:contain}
+.tafsir-sheet.on{transform:translate(-50%,0)}
+@media (min-width:760px){
+  .tafsir-sheet{bottom:auto;top:50%;border-radius:32px;border-bottom:1px solid rgba(255,255,255,.16);
+    transform:translate(-50%,-44%) scale(.97);opacity:0;max-height:84svh;
+    transition:transform .34s var(--spring),opacity .24s var(--ease)}
+  .tafsir-sheet.on{transform:translate(-50%,-50%) scale(1);opacity:1}
+  .ts-grab{display:none}
+}
+.ts-grab{width:38px;height:5px;border-radius:99px;background:rgba(255,255,255,.26);margin:10px auto 2px;flex-shrink:0}
+.ts-head{display:flex;align-items:flex-start;gap:14px;padding:14px 22px 12px;flex-shrink:0}
+.ts-eyebrow{font-size:.64rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.ts-head h3{font-family:'Fraunces',serif;font-weight:400;font-size:1.3rem;letter-spacing:-.01em;margin-top:5px;color:var(--text)}
+.ts-head .grow{flex:1;min-width:0}
+.ts-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 22px 26px;overscroll-behavior:contain}
+.ts-ayah{direction:rtl;text-align:right;font-family:'Amiri Quran','Scheherazade New',serif;
+  font-size:clamp(1.35rem,4.4vw,1.75rem);line-height:2.05;color:var(--page);
+  background:linear-gradient(180deg,rgba(212,175,55,.13),rgba(212,175,55,.05));
+  border:1px solid rgba(212,175,55,.24);border-radius:22px;padding:18px 20px}
+.ts-trans{color:var(--muted);font-style:italic;line-height:1.6;font-size:.92rem;margin-top:12px;padding-inline-start:14px;
+  border-inline-start:2px solid rgba(212,175,55,.34)}
+.ts-pick{display:flex;align-items:center;gap:12px;width:100%;margin:20px 0 14px;padding:12px 16px;
+  border-radius:20px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);
+  text-align:start;transition:.2s var(--ease)}
+.ts-pick:hover{background:rgba(255,255,255,.12)}
+.ts-pick:active{transform:scale(.99)}
+.ts-pick-t{flex:1;min-width:0;display:grid;gap:1px}
+.ts-pick-k{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);font-weight:800}
+.ts-pick-t b{font-size:.98rem;color:var(--text);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-pick-t span:last-child{font-size:.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-pick-c{color:var(--muted);font-size:1.1rem;flex-shrink:0}
+.ts-panel{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;border-radius:inherit;
+  background:rgba(20,20,20,.97);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  opacity:0;transform:translateY(10px);transition:.28s var(--ease)}
+.ts-panel.on{opacity:1;transform:none}
+.ts-panel-head{display:flex;align-items:center;gap:6px;padding:18px 18px 10px;flex-shrink:0}
+.ts-panel-head h4{font-family:'Fraunces',serif;font-weight:400;font-size:1.12rem;color:var(--text)}
+.ts-back{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;line-height:1;
+  color:var(--gold-2);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.10)}
+.ts-back:hover{background:rgba(255,255,255,.14)}
+.ts-search-wrap{padding:0 18px 12px;flex-shrink:0}
+#tsSearch{width:100%;min-height:42px;padding:0 14px;border-radius:14px;border:1px solid rgba(255,255,255,.13);
+  background:rgba(255,255,255,.07);color:var(--text);outline:0}
+#tsSearch:focus{border-color:rgba(212,175,55,.6);box-shadow:0 0 0 4px rgba(212,175,55,.10)}
+.ts-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 12px calc(18px + var(--safe-bottom));
+  overscroll-behavior:contain}
+.ts-group{position:sticky;top:0;z-index:1;padding:10px 6px 6px;font-size:.62rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--gold);font-weight:800;
+  background:linear-gradient(180deg,rgba(20,20,20,.99),rgba(20,20,20,.86))}
+.ts-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border-radius:16px;
+  text-align:start;transition:.16s var(--ease)}
+.ts-row:hover{background:rgba(255,255,255,.08)}
+.ts-row-t{flex:1;min-width:0;display:grid;gap:2px}
+.ts-row-t b{font-size:.92rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-row-t span{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ts-tick{opacity:0;color:var(--gold-2);font-weight:800;flex-shrink:0}
+.ts-row.on{background:rgba(212,175,55,.10)}
+.ts-row.on .ts-tick{opacity:1}
+.ts-row.on .ts-row-t b{color:var(--gold-2)}
+.ts-source{display:flex;align-items:center;gap:8px;font-size:.74rem;color:var(--quiet);margin-bottom:14px}
+.ts-source b{color:var(--gold-2);font-weight:700}
+.ts-body{color:#e4e4df;line-height:1.75;font-size:.97rem}
+.ts-body h1,.ts-body h2,.ts-body h3,.ts-body h4{font-family:'Fraunces',serif;font-weight:400;color:var(--gold-2);
+  font-size:1.08rem;line-height:1.35;margin:24px 0 10px}
+.ts-body p{margin:0 0 14px}
+.ts-body blockquote{margin:16px 0;padding:14px 16px;border-radius:18px;background:rgba(212,175,55,.07);
+  border:1px solid rgba(212,175,55,.18);border-inline-start:3px solid var(--gold)}
+.ts-body ul,.ts-body ol{margin:0 0 14px;padding-inline-start:22px}
+.ts-body li{margin-bottom:6px}
+.ts-body a{color:var(--gold-2);text-decoration:underline;text-underline-offset:3px}
+.ts-body [lang="ar"],.ts-body .ar{font-family:'Amiri Quran','Scheherazade New',serif;font-size:1.18em;line-height:2}
+.ts-body sup{font-size:.7em;color:var(--gold)}
+.ts-sk div{height:14px;border-radius:7px;margin-bottom:12px;
+  background:linear-gradient(90deg,rgba(255,255,255,.05) 25%,rgba(255,255,255,.12) 37%,rgba(255,255,255,.05) 63%);
+  background-size:400% 100%;animation:sk 1.4s ease infinite}
+.ts-sk div:nth-child(3n){width:78%}.ts-sk div:nth-child(3n+1){width:94%}
+.ts-msg{padding:26px 4px;color:var(--muted);line-height:1.6;font-size:.92rem}
+.ts-msg b{display:block;color:var(--text);font-size:1.02rem;margin-bottom:6px;letter-spacing:-.02em}
+.ts-foot{flex-shrink:0;padding:12px 22px calc(16px + var(--safe-bottom));border-top:1px solid rgba(255,255,255,.09);
+  display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.78rem;color:var(--quiet)}
+.ts-foot a{color:var(--gold-2);font-weight:700}
+@media (prefers-reduced-motion:reduce){.tafsir-sheet,.ts-scrim{transition:none}}
+
 .resume-card.flash{animation:cardFlash 1.1s var(--ease)}
 @keyframes cardFlash{0%{box-shadow:var(--shadow),0 0 0 0 rgba(212,175,55,0)}
   25%{box-shadow:var(--shadow),0 0 0 3px rgba(212,175,55,.45)}
@@ -441,6 +546,47 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
 </div>
 
 <div class="toast-wrap" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<div class="ts-scrim" id="tsScrim" hidden></div>
+<section class="tafsir-sheet" id="tsSheet" role="dialog" aria-modal="true" aria-labelledby="tsTitle" hidden>
+  <div class="ts-grab" aria-hidden="true"></div>
+  <header class="ts-head">
+    <div class="grow">
+      <span class="ts-eyebrow" id="tsKey"></span>
+      <h3 id="tsTitle">Tafsīr</h3>
+    </div>
+    <button class="icon-btn" id="tsClose" aria-label="Close tafsīr">×</button>
+  </header>
+  <div class="ts-scroll" id="tsScroll">
+    <div class="ts-ayah" id="tsAyah" lang="ar" dir="rtl"></div>
+    <div class="ts-trans" id="tsTrans" hidden></div>
+    <button class="ts-pick" id="tsPick" aria-haspopup="listbox">
+      <span class="ts-pick-t">
+        <span class="ts-pick-k">Tafsīr</span>
+        <b id="tsPickName">Ibn Kathīr</b>
+        <span id="tsPickBy"></span>
+      </span>
+      <span class="ts-pick-c" aria-hidden="true">⌄</span>
+    </button>
+    <p class="ts-source" id="tsSource"></p>
+    <div class="ts-body" id="tsBody"></div>
+  </div>
+  <footer class="ts-foot">
+    <span>Shown as published, in its author's own words.</span>
+    <a id="tsLink" target="_blank" rel="noopener noreferrer">Quran.com ↗</a>
+  </footer>
+
+  <div class="ts-panel" id="tsPanel" hidden>
+    <header class="ts-panel-head">
+      <button class="ts-back" id="tsPanelBack" aria-label="Back to the commentary">‹</button>
+      <h4>Choose a tafsīr</h4>
+    </header>
+    <div class="ts-search-wrap">
+      <input id="tsSearch" type="search" placeholder="Search by work or author" aria-label="Search tafsīrs" autocomplete="off">
+    </div>
+    <div class="ts-list" id="tsList" role="listbox" aria-label="Available tafsīrs"></div>
+  </div>
+</section>
 
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="sheet"><div class="sheet-head"><h3 id="modalTitle">Hifz</h3><button class="icon-btn" id="closeModal" aria-label="Close">×</button></div><div id="modalBody"></div></div></div>
 <!-- No crossorigin attribute: the buffered fallback exists precisely for hosts that
@@ -1247,14 +1393,45 @@ function renderPassage(c, hasTrans, preserveState){
     const body = useTaj ? v.textTajweed : v.text;
     node.innerHTML = '<div class="verse-main" lang="ar">' + body +
       '<span class="marker">﴿' + arabicDigits(v.num) + '﴾</span></div>' +
-      (hasTrans && v.trans ? '<div class="trans">' + v.num + ". " + v.trans + "</div>" : "");
+      (hasTrans && v.trans ? '<div class="trans">' + v.num + ". " + v.trans + "</div>" : "") +
+      '<button class="verse-tafsir" tabindex="-1" aria-label="Tafsīr and narrations for ayah ' + v.num + '">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H10a2 2 0 0 1 2 2v14a1.5 1.5 0 0 0-1.5-1.5H5.5A2.5 2.5 0 0 1 3 15Z"/>' +
+        '<path d="M21 5.5A2.5 2.5 0 0 0 18.5 3H14a2 2 0 0 0-2 2v14a1.5 1.5 0 0 1 1.5-1.5h5A2.5 2.5 0 0 0 21 15Z"/>' +
+        "</svg></button>";
+
     const onTap = () => {
       if(page.classList.contains("veiled")){ node.classList.toggle("peek"); haptic() }
       else if(mode === "surah"){ toast("This reciter streams the whole surah — tap-to-play a single ayah needs an ayah-by-ayah voice.") }
       else jumpTo(vi);
     };
-    node.addEventListener("click", onTap);
-    node.addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); onTap() } });
+    /* Playing from a verse is the core gesture, so it keeps the plain tap. The
+       tafsīr has its own button, and a long press anywhere on the ayah. */
+    let pressTimer = 0, longPressed = false;
+    const startPress = () => {
+      if(page.classList.contains("veiled")) return;
+      longPressed = false;
+      pressTimer = setTimeout(() => { longPressed = true; openTafsir(vi) }, 480);
+    };
+    const endPress = () => { pressTimer = clearTimer(pressTimer) };
+    node.addEventListener("pointerdown", startPress);
+    node.addEventListener("pointerup", endPress);
+    node.addEventListener("pointercancel", endPress);
+    node.addEventListener("pointerleave", endPress);
+    node.addEventListener("contextmenu", e => {
+      if(page.classList.contains("veiled")) return;
+      e.preventDefault(); openTafsir(vi);
+    });
+    node.addEventListener("click", e => {
+      if(e.target.closest(".verse-tafsir")){ e.stopPropagation(); openTafsir(vi); return }
+      if(longPressed){ longPressed = false; return }   /* the press already opened the sheet */
+      onTap();
+    });
+    node.addEventListener("keydown", e => {
+      if(e.key === "Enter" || e.key === " "){ e.preventDefault(); onTap() }
+      if(e.key === "t" || e.key === "T"){ e.preventDefault(); e.stopPropagation(); openTafsir(vi) }
+    });
     v.node = node;
     frag.appendChild(node);
   });
@@ -1576,6 +1753,238 @@ function applyModeUI(){
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   Tafsīr — Ibn Kathīr, and the narrations he cites
+   ──────────────────────────────────────────────────────────────────
+   Nothing here is written by this app. The commentary, and every hadith
+   inside it, is fetched from Quran.com's published Ibn Kathīr text and
+   rendered as returned, so a narration is only ever shown in the context
+   its own author gave it. Remote HTML is sanitised before it is inserted.
+   ══════════════════════════════════════════════════════════════════ */
+/* Every tafsīr Quran.com publishes is offered. Ibn Kathīr is simply the default,
+   because it is the one that carries the narrations. The list is fetched, never
+   hardcoded, so new works appear on their own. */
+const TAFSIR_FALLBACK = [                       /* only if the list endpoint is unreachable */
+  { id:169, name:"Tafsir Ibn Kathir", author_name:"Hafiz Ibn Kathir", language_name:"english" },
+  { id:14,  name:"تفسير ابن كثير",     author_name:"ابن كثير",         language_name:"arabic"  }
+];
+const IBN_KATHIR = /ibn\s*kath|ابن\s*كثير/i;
+const RTL_LANGS = /arabic|urdu|persian|farsi|kurdish|pashto|sindhi|uighur|uyghur|hebrew|divehi/i;
+
+const tafsirCache = new Map();     // "id:verseKey" -> html
+let tafsirList = null;             // all published tafsirs
+let tafsirCur = null;              // the chosen one
+let tsVerse = null, tsToken = 0;
+
+/* Remote HTML is untrusted: keep a small, known-safe subset and drop the rest. */
+const TS_ALLOWED = {P:1,BR:1,B:1,STRONG:1,I:1,EM:1,U:1,SPAN:1,DIV:1,SUP:1,SUB:1,UL:1,OL:1,LI:1,
+                    BLOCKQUOTE:1,H1:1,H2:1,H3:1,H4:1,H5:1,H6:1,A:1,HR:1,SMALL:1,CITE:1,TABLE:1,
+                    THEAD:1,TBODY:1,TR:1,TD:1,TH:1};
+const TS_BLOCKED = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|LINK|META|FORM|INPUT|BUTTON|SELECT|TEXTAREA|SVG|MATH|BASE|TEMPLATE)$/;
+
+function sanitizeHtml(html){
+  /* Parse into an INERT document. Assigning to innerHTML — even on a detached
+     node — still kicks off resource loads, so <img src=x onerror=...> would fire
+     before a single tag had been stripped. A DOMParser document fetches nothing
+     and runs nothing, so sanitising happens before anything can execute. */
+  const doc = new DOMParser().parseFromString(
+    "<!doctype html><body>" + String(html || "") + "</body>", "text/html");
+  const root = doc.body;
+  (function clean(node){
+    Array.from(node.childNodes).forEach(ch => {
+      if(ch.nodeType === 3) return;                      /* text is fine */
+      if(ch.nodeType !== 1){ ch.remove(); return }        /* comments, etc. */
+      if(TS_BLOCKED.test(ch.tagName)){ ch.remove(); return }
+      clean(ch);                                         /* depth first, so unwrapping is safe */
+      if(!TS_ALLOWED[ch.tagName]){
+        const frag = document.createDocumentFragment();
+        while(ch.firstChild) frag.appendChild(ch.firstChild);
+        ch.replaceWith(frag);
+        return;
+      }
+      Array.from(ch.attributes).forEach(a => {
+        const n = a.name.toLowerCase();
+        const keepHref = ch.tagName === "A" && n === "href" && /^https?:\/\//i.test(a.value);
+        const keepLang = n === "lang" || n === "dir";
+        if(!keepHref && !keepLang) ch.removeAttribute(a.name);
+      });
+      if(ch.tagName === "A"){ ch.setAttribute("target", "_blank"); ch.setAttribute("rel", "noopener noreferrer") }
+    });
+  })(root);
+  return root.innerHTML;
+}
+
+const tafsirName = t => (t.translated_name && t.translated_name.name) || t.name || "Tafsīr";
+const tafsirLangOf = t => String(t.language_name || "other").toLowerCase();
+
+async function loadTafsirList(){
+  if(tafsirList) return tafsirList;
+  let list = null;
+  try{
+    const d = await fetch(API + "/resources/tafsirs").then(r => r.json());
+    if(d && Array.isArray(d.tafsirs) && d.tafsirs.length) list = d.tafsirs;
+  }catch(e){}
+  tafsirList = (list || TAFSIR_FALLBACK).filter(t => t && t.id);
+
+  /* English first, Arabic next, everything else alphabetically — then by name */
+  const rank = l => l === "english" ? 0 : l === "arabic" ? 1 : 2;
+  tafsirList.sort((a, b) => {
+    const la = tafsirLangOf(a), lb = tafsirLangOf(b);
+    return rank(la) - rank(lb) || la.localeCompare(lb) || tafsirName(a).localeCompare(tafsirName(b));
+  });
+
+  const savedId = store.get("tafsirId", null);
+  tafsirCur = tafsirList.find(t => t.id === savedId)
+           || tafsirList.find(t => tafsirLangOf(t) === "english" && IBN_KATHIR.test(tafsirName(t) + " " + (t.author_name || "")))
+           || tafsirList.find(t => IBN_KATHIR.test(tafsirName(t) + " " + (t.author_name || "")))
+           || tafsirList.find(t => tafsirLangOf(t) === "english")
+           || tafsirList[0];
+  return tafsirList;
+}
+
+async function fetchTafsir(id, verseKey){
+  const ck = id + ":" + verseKey;
+  if(tafsirCache.has(ck)) return tafsirCache.get(ck);
+  let text = null;
+  try{
+    const d = await fetch(API + "/tafsirs/" + id + "/by_ayah/" + verseKey).then(r => r.json());
+    text = d && d.tafsir && d.tafsir.text;
+  }catch(e){}
+  if(!text){                                    /* older shape, still served */
+    try{
+      const d = await fetch(API + "/quran/tafsirs/" + id + "?verse_key=" + verseKey).then(r => r.json());
+      text = d && d.tafsirs && d.tafsirs[0] && d.tafsirs[0].text;
+    }catch(e){}
+  }
+  if(text) tafsirCache.set(ck, text);
+  return text;
+}
+
+async function openTafsir(vi){
+  const v = passage[vi];
+  if(!v || !currentChapter) return;
+  tsVerse = v;
+  el("tsKey").textContent = currentChapter.name_simple + " · " + v.key;
+  el("tsAyah").innerHTML = v.text + '<span class="marker">﴿' + arabicDigits(v.num) + "﴾</span>";
+  const tr = el("tsTrans");
+  if(v.trans){ tr.textContent = v.trans; tr.hidden = false } else tr.hidden = true;
+  el("tsLink").href = "https://quran.com/" + currentChapter.id + "/" + v.num + "/tafsirs";
+  showTafsirPanel(false);
+  showTafsirSheet(true);
+  haptic();
+  await loadTafsirList();
+  renderTafsirPicker();
+  loadTafsirBody();
+}
+
+function renderTafsirPicker(){
+  if(!tafsirCur) return;
+  el("tsPickName").textContent = tafsirName(tafsirCur);
+  const by = [tafsirCur.author_name, cap(tafsirLangOf(tafsirCur))].filter(Boolean).join(" · ");
+  el("tsPickBy").textContent = by;
+}
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
+
+async function loadTafsirBody(){
+  const token = ++tsToken;
+  const body = el("tsBody"), src = el("tsSource");
+  if(!tafsirCur) return;
+  src.innerHTML = "<b>" + tafsirName(tafsirCur) + "</b>" +
+    (tafsirCur.author_name ? " · " + tafsirCur.author_name : "") + " · via Quran.com";
+  body.className = "ts-body ts-sk";
+  body.innerHTML = "<div></div><div></div><div></div><div></div><div></div><div></div>";
+  let html = null;
+  try{ html = await fetchTafsir(tafsirCur.id, tsVerse.key) }catch(e){}
+  if(token !== tsToken) return;
+  body.className = "ts-body";
+  if(!html){
+    body.innerHTML = '<div class="ts-msg"><b>Nothing to show for this ayah.</b>' +
+      "Commentaries often cover several ayat under one heading, so an individual " +
+      "verse can come back empty — try the ayah that opens the passage, choose another " +
+      "tafsīr, or read the full entry on Quran.com. If you are offline, this needs a connection.</div>";
+    return;
+  }
+  body.innerHTML = sanitizeHtml(html);
+  if(RTL_LANGS.test(tafsirLangOf(tafsirCur))){ body.setAttribute("dir", "rtl"); body.setAttribute("lang", "ar") }
+  else { body.removeAttribute("dir"); body.removeAttribute("lang") }
+  el("tsScroll").scrollTop = 0;
+}
+
+/* ── the picker: every published tafsīr, grouped by language, searchable ── */
+function renderTafsirList(filter){
+  const q = String(filter || "").trim().toLowerCase();
+  const rows = (tafsirList || []).filter(t => !q ||
+    (tafsirName(t) + " " + (t.author_name || "") + " " + tafsirLangOf(t)).toLowerCase().includes(q));
+  const list = el("tsList");
+  if(!rows.length){ list.innerHTML = '<p class="cov-empty">Nothing matches that.</p>'; return }
+  let html = "", lang = null;
+  rows.forEach(t => {
+    const l = tafsirLangOf(t);
+    if(l !== lang){ lang = l; html += '<h5 class="ts-group">' + cap(l) + "</h5>" }
+    const on = tafsirCur && t.id === tafsirCur.id;
+    html += '<button class="ts-row' + (on ? " on" : "") + '" data-id="' + t.id + '"' +
+      (on ? ' aria-current="true"' : "") + '><span class="ts-row-t"><b>' + esc(tafsirName(t)) + "</b>" +
+      (t.author_name ? "<span>" + esc(t.author_name) + "</span>" : "") +
+      '</span><span class="ts-tick" aria-hidden="true">✓</span></button>';
+  });
+  list.innerHTML = html;
+}
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, ch =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+
+/* Tracked explicitly rather than read off the hidden attribute: that attribute
+   lags by the length of the close transition, during which Escape would swallow
+   itself closing an already-closing panel instead of dismissing the sheet. */
+let tsPanelOpen = false;
+function showTafsirPanel(on){
+  const panel = el("tsPanel");
+  tsPanelOpen = !!on;
+  if(on){
+    renderTafsirList(el("tsSearch").value = "");
+    panel.hidden = false;
+    requestAnimationFrame(() => panel.classList.add("on"));
+    setTimeout(() => el("tsSearch").focus(), 80);
+  }else{
+    panel.classList.remove("on");
+    setTimeout(() => { if(!tsPanelOpen) panel.hidden = true }, 320);
+  }
+}
+
+el("tsPick").addEventListener("click", () => showTafsirPanel(true));
+el("tsPanelBack").addEventListener("click", () => showTafsirPanel(false));
+el("tsSearch").addEventListener("input", e => renderTafsirList(e.target.value));
+el("tsList").addEventListener("click", e => {
+  const row = e.target.closest(".ts-row");
+  if(!row) return;
+  const pick = (tafsirList || []).find(t => String(t.id) === row.dataset.id);
+  if(!pick) return;
+  tafsirCur = pick;
+  store.set("tafsirId", pick.id);
+  renderTafsirPicker();
+  showTafsirPanel(false);
+  loadTafsirBody();
+  haptic();
+});
+
+let tsLastFocus = null;
+function showTafsirSheet(on){
+  const sheet = el("tsSheet"), scrim = el("tsScrim");
+  if(on){
+    tsLastFocus = document.activeElement;
+    scrim.hidden = false; sheet.hidden = false;
+    requestAnimationFrame(() => { scrim.classList.add("on"); sheet.classList.add("on") });
+    document.body.style.overflow = "hidden";
+    setTimeout(() => el("tsClose").focus(), 60);
+  }else{
+    scrim.classList.remove("on"); sheet.classList.remove("on");
+    document.body.style.overflow = "";
+    setTimeout(() => { scrim.hidden = true; sheet.hidden = true }, 380);
+    if(tsLastFocus && tsLastFocus.focus) tsLastFocus.focus();
+  }
+}
+
+el("tsClose").addEventListener("click", () => showTafsirSheet(false));
+el("tsScrim").addEventListener("click", () => showTafsirSheet(false));
+/* ══════════════════════════════════════════════════════════════════
    Media Session + Wake Lock — behave like a real player
    ══════════════════════════════════════════════════════════════════ */
 function updateMediaSession(){
@@ -1748,7 +2157,10 @@ document.addEventListener("keydown", e => {
     case "t": case "T": tajweedBtn.click(); break;
     case "l": case "L": loopChk.checked = !loopChk.checked; loopChk.dispatchEvent(new Event("change")); break;
     case "?": openHelp(); break;
-    case "Escape": modal.classList.remove("open"); break;
+    case "Escape":
+      if(tsPanelOpen){ showTafsirPanel(false); break }
+      if(!el("tsSheet").hidden){ showTafsirSheet(false); break }
+      modal.classList.remove("open"); break;
   }
 });
 
@@ -1762,6 +2174,7 @@ function openHelp(){
     <p>Start with a short passage. Listen several times, then press <span class="kbd">Veil</span> to blur the page. Tap any ayah to play from there; in veil mode, tap one ayah to peek when you need a small reminder. The goal is active recall, not reading.</p>
     <p><b style="color:var(--text)">Playback is seamless.</b> The next ayah is always ready before the current one ends, so the passage flows without a pause. If you <i>want</i> a breath between ayat to recite along, open the player and raise <b style="color:var(--gold-2)">Pause between ayat</b>.</p>
     <p><b style="color:var(--text)">Hearing nothing?</b> On iPhone and iPad, check the ringer switch on the side of the device — when it is set to silent it mutes some kinds of web audio. The app already picks the player that ignores that switch, but if you are ever met with silence, open the player and set <b style="color:var(--gold-2)">Audio engine</b> to <b style="color:var(--gold-2)">Compatible</b>.</p>
+    <p><b style="color:var(--text)">Want the commentary?</b> Every ayah carries a small book mark — tap it, long-press the ayah, or press <span class="kbd">T</span> while it is focused, to open Ibn Kathīr's tafsīr and the narrations he cites for that verse. It is their text, fetched as published, not a summary written here \u2014 and you can switch to any other tafsīr Quran.com carries.</p>
     <div class="shortcut-list">
       <div><span>Play / pause</span> <span class="kbd">Space</span></div>
       <div><span>Next / previous ayah</span> <span><span class="kbd">←</span> <span class="kbd">→</span></span></div>
