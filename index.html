@@ -277,8 +277,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
 .ts-msg{padding:26px 4px;color:var(--muted);line-height:1.6;font-size:.92rem}
 .ts-msg b{display:block;color:var(--text);font-size:1.02rem;margin-bottom:6px;letter-spacing:-.02em}
 .ts-foot{flex-shrink:0;padding:12px 22px calc(16px + var(--safe-bottom));border-top:1px solid rgba(255,255,255,.09);
-  display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.78rem;color:var(--quiet)}
-.ts-foot a{color:var(--gold-2);font-weight:700}
+  display:flex;justify-content:space-between;align-items:center;gap:14px;font-size:.72rem;line-height:1.5;color:var(--quiet)}
+.ts-foot span{flex:1;min-width:0}
+.ts-foot a{color:var(--gold-2);font-weight:700;white-space:nowrap;flex-shrink:0}
+@media (max-width:560px){.ts-foot{flex-direction:column;align-items:flex-start;gap:8px}}
 @media (prefers-reduced-motion:reduce){.tafsir-sheet,.ts-scrim{transition:none}}
 
 .resume-card.flash{animation:cardFlash 1.1s var(--ease)}
@@ -572,8 +574,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:0;border-radiu
     <div class="ts-body" id="tsBody"></div>
   </div>
   <footer class="ts-foot">
-    <span>Shown as published, in its author's own words.</span>
-    <a id="tsLink" target="_blank" rel="noopener noreferrer">Quran.com ↗</a>
+    <span>Nothing here is written by this app — it is the author's own published
+      text, unaltered. Classical commentaries quote reports of differing strength;
+      your teacher remains your teacher.</span>
+    <a id="tsLink" target="_blank" rel="noopener noreferrer">Verify on Quran.com ↗</a>
   </footer>
 
   <div class="ts-panel" id="tsPanel" hidden>
@@ -1779,7 +1783,11 @@ let tsVerse = null, tsToken = 0;
 const TS_ALLOWED = {P:1,BR:1,B:1,STRONG:1,I:1,EM:1,U:1,SPAN:1,DIV:1,SUP:1,SUB:1,UL:1,OL:1,LI:1,
                     BLOCKQUOTE:1,H1:1,H2:1,H3:1,H4:1,H5:1,H6:1,A:1,HR:1,SMALL:1,CITE:1,TABLE:1,
                     THEAD:1,TBODY:1,TR:1,TD:1,TH:1};
-const TS_BLOCKED = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|LINK|META|FORM|INPUT|BUTTON|SELECT|TEXTAREA|SVG|MATH|BASE|TEMPLATE)$/;
+/* Discarded WITH their contents — these carry code or styling, never prose. Any
+   other unknown tag is unwrapped instead, so its words survive: silently dropping
+   text from a commentary could cut a qualifier off a narration and change what
+   the author is saying, which is as bad as adding something he never wrote. */
+const TS_DROP = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|LINK|META|BASE|NOSCRIPT|CANVAS|AUDIO|VIDEO)$/;
 
 function sanitizeHtml(html){
   /* Parse into an INERT document. Assigning to innerHTML — even on a detached
@@ -1793,7 +1801,15 @@ function sanitizeHtml(html){
     Array.from(node.childNodes).forEach(ch => {
       if(ch.nodeType === 3) return;                      /* text is fine */
       if(ch.nodeType !== 1){ ch.remove(); return }        /* comments, etc. */
-      if(TS_BLOCKED.test(ch.tagName)){ ch.remove(); return }
+      if(TS_DROP.test(ch.tagName)){ ch.remove(); return }
+      if(ch.tagName === "TEMPLATE"){
+        /* a template's children hang off .content, not childNodes — unwrapping it
+           the ordinary way would quietly swallow every word inside */
+        const frag = ch.content;
+        clean(frag);
+        ch.replaceWith(frag);
+        return;
+      }
       clean(ch);                                         /* depth first, so unwrapping is safe */
       if(!TS_ALLOWED[ch.tagName]){
         const frag = document.createDocumentFragment();
